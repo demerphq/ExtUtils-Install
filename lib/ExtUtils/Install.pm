@@ -1,10 +1,9 @@
 package ExtUtils::Install;
-
 use 5.00503;
 use strict;
 
 use vars qw(@ISA @EXPORT $VERSION $MUST_REBOOT %Config);
-$VERSION = '1.37'; # experimental release
+$VERSION = '1.3701'; # experimental release
 
 use Exporter;
 use Carp ();
@@ -12,6 +11,22 @@ use Config qw(%Config);
 
 @ISA = ('Exporter');
 @EXPORT = ('install','uninstall','pm_to_blib', 'install_default');
+
+=head1 NAME
+
+ExtUtils::Install - install files from here to there
+
+=head1 SYNOPSIS
+
+  use ExtUtils::Install;
+
+  install({ 'blib/lib' => 'some/install/dir' } );
+
+  uninstall($packlist);
+
+  pm_to_blib({ 'lib/Foo/Bar.pm' => 'blib/lib/Foo/Bar.pm' });
+
+=cut
 
 my $Is_VMS     = $^O eq 'VMS';
 my $Is_MacPerl = $^O eq 'MacOS';
@@ -35,21 +50,6 @@ my $INSTALL_ROOT = $ENV{PERL_INSTALL_ROOT};
 use File::Spec;
 my $Curdir = File::Spec->curdir;
 my $Updir  = File::Spec->updir;
-
-
-=head1 NAME
-
-ExtUtils::Install - install files from here to there
-
-=head1 SYNOPSIS
-
-  use ExtUtils::Install;
-
-  install({ 'blib/lib' => 'some/install/dir' } );
-
-  uninstall($packlist);
-
-  pm_to_blib({ 'lib/Foo/Bar.pm' => 'blib/lib/Foo/Bar.pm' });
 
 
 =head1 DESCRIPTION
@@ -78,6 +78,14 @@ has occured.
 If this value is defined but false then such an operation has
 ocurred, but should not impact later operations.
 
+=begin _private
+
+=item _chmod($$;$)
+
+Wrapper to chmod() for debugging and error trapping.
+
+=end _private
+
 =cut
 
 
@@ -93,19 +101,32 @@ sub _chmod($$;$) {
     }
 }
 
-# Schedules a file to be moved/renamed/deleted at next boot.
-# $file should be a filespec of an existing file
-# $target should be a ref to an array if the file is to be deleted
-# otherwise it should be a filespec for a rename. If the file is existing
-# it will be replaced.
-# returns 1 on success, undef if the operation is meaningless on the
-# current OS, and dies otherwise.
-# Sets $MUST_REBOOT to 0 to indicate a deletion operation has occured
-# and sets it to 1 to indicate that a move operation has been requested.
-#
+=begin _private
 
-sub _move_file_at_boot {
-    my ( $file, $target )= @_;
+=item _move_file_at_boot( $file, $target, $moan  )
+
+OS-Specific, Win32/Cygwin
+
+Schedules a file to be moved/renamed/deleted at next boot.
+$file should be a filespec of an existing file
+$target should be a ref to an array if the file is to be deleted
+otherwise it should be a filespec for a rename. If the file is existing
+it will be replaced.
+
+Sets $MUST_REBOOT to 0 to indicate a deletion operation has occured
+and sets it to 1 to indicate that a move operation has been requested.
+
+returns 1 on success, on failure if $moan is false errors are fatal.
+If $moan is true then returns 0 on error and warns instead of dies.
+
+=end _private
+
+=cut
+
+
+
+sub _move_file_at_boot { #XXX OS-SPECIFIC
+    my ( $file, $target, $moan  )= @_;
     Carp::confess("Panic: Can't _move_file_at_boot on this platform!")
          unless $CanMoveAtBoot;
 
@@ -114,11 +135,15 @@ sub _move_file_at_boot {
                 : "'$file' for installation as '$target'";
 
     if ( ! $Has_Win32API_File ) {
-        die '!' x 72, "\n",
-            "ERROR: Cannot schedule $descr at reboot.",
-            "Try installing Win32API::File to allow operations on locked files\n",
-            "to be scheduled during reboot. Or try to perform the operation by hand yourself.\n",
-            '!' x 72, "\n";
+        my $msg=join "\n",'!' x 72,
+            ( $moan ? "WARNING:" : "ERROR:" )
+            . " Cannot schedule $descr at reboot.",
+            "Try installing Win32API::File to allow operations on locked files",
+            "to be scheduled during reboot. Or try to perform the operation by",
+            "hand yourself. (You may need to close other perl processes first)",
+            '!' x 72,"";
+        if ( $moan ) { warn $msg } else { die $msg }
+        return 0;
     }
     my $opts= Win32API::File::MOVEFILE_DELAY_UNTIL_REBOOT();
     $opts= $opts | Win32API::File::MOVEFILE_REPLACE_EXISTING()
@@ -131,27 +156,54 @@ sub _move_file_at_boot {
         $MUST_REBOOT ||= ref $target ? 0 : 1;
         return 1;
     } else {
-        die '!' x 72, "\n",
-            "ERROR: MoveFileEx $descr at reboot failed: $^E\n",
-            '!' x 72, "\n";
+        my $msg=join "\n",'!' x 72,
+            ( $moan ? "WARNING:" : "ERROR:" )
+            . "MoveFileEx $descr at reboot failed: $^E",
+            "You may try to perform the operation by hand yourself. ",
+            "(You may need to close other perl processes first).",
+            '!' x 72, "";
+        if ( $moan ) { warn $msg } else { die $msg }
     }
+    return 0;
 }
 
-#
-# _unlink_or_rename
-#
-# Tries to unlink $file, if unlink isnt possible tries to rename the
-# file to a temporary name and schedule the file for deletion later.
-# If the rename fails and $installing is true then schedules that
-# the tempfile be renamed to the correct name at boot.
-# Returns the filename to use for installation or the filename that
-# was deleted. Dies on failure.
-# Note that when $installing is true the caller is expected to install
-# the file under the returned filename.
-#
-#
 
-sub _unlink_or_rename {
+=begin _private
+
+=item _unlink_or_rename( $file, $tryhard, $installing )
+
+OS-Specific, Win32/Cygwin
+
+Tries to get a file out of the way by unlinking it or renaming it. On
+some OS'es (Win32 based) DLL files can end up locked such that they can
+be renamed but not deleted. Likewise sometimes a file can be locked such
+that it cant even be renamed or changed except at reboot. To handle
+these cases this routine finds a tempfile name that it can either rename
+the file out of the way or use as a proxy for the install so that the
+rename can happen later (at reboot).
+
+  $file : the file to remove.
+  $tryhard : should advanced tricks be used for deletion
+  $installing : we are not merely deleting but we want to overwrite
+
+When $tryhard is not true if the unlink fails its fatal. When $tryhard
+is true then the file is attempted to be renamed. The renamed file is
+then scheduled for deletion. If the rename fails then $installing
+governs what happens. If it is false the failure is fatal. If it is true
+then an attempt is made to schedule installation at boot using a
+temporary file to hold the new file. If this fails then a fatal error is
+thrown, if it succeeds it returns the temporary file name (which will be
+a derivative of the original in the same directory) so that the caller can
+use it to install under. In all other cases of success returns $file.
+On failure throws a fatal error.
+
+=end _private
+
+=cut
+
+
+
+sub _unlink_or_rename { #XXX OS-SPECIFIC
     my ( $file, $tryhard, $installing )= @_;
 
     _chmod( 0666, $file );
@@ -172,19 +224,22 @@ sub _unlink_or_rename {
          "Going to try to rename it to '$tmp'.\n";
 
     if ( rename $file, $tmp ) {
-        warn "Rename succesful.\n",
-             "WARNING: Scheduling '$tmp' for deletion at reboot.\n";
-        _move_file_at_boot( $tmp, [] );
+        warn "Rename succesful. Scheduling '$tmp'\nfor deletion at reboot.\n";
+        # when $installing we can set $moan to true.
+        # IOW, if we cant delete the renamed file at reboot its
+        # not the end of the world. The other cases are more serious
+        # and need to be fatal.
+        _move_file_at_boot( $tmp, [], $installing );
 	return $file;
     } elsif ( $installing ) {
-        warn "WARNING: Rename failed: $!\n",
-             "WARNING: Scheduling '$tmp' for installation as '$file' at reboot.\n";
+        warn "WARNING: Rename failed: $!. Scheduling '$tmp'\nfor".
+             " installation as '$file' at reboot.\n";
         _move_file_at_boot( $tmp, $file );
         return $tmp;
     } else {
         Carp::croak('!' x 72, "\n",
-            "ERROR: Cannot unlink '$file': $error\n",
-            "ERROR: Cannot rename '$file': $!\n",
+            "ERROR: Rename failed:$!\n",
+            "Cannot procede.\n",
             '!' x 72, "\n");
     }
 
@@ -223,7 +278,7 @@ will be uninstalled.  This is "make install UNINST=1"
 
 
 
-sub install {
+sub install { #XXX OS-SPECIFIC
     my($from_to,$verbose,$nonono,$inc_uninstall) = @_;
     $verbose ||= 0;
     $nonono  ||= 0;
@@ -240,7 +295,7 @@ sub install {
     my(%pack, $dir, $warn_permissions);
     my($packlist) = ExtUtils::Packlist->new();
     # -w doesn't work reliably on FAT dirs
-    $warn_permissions++ if $Is_Win32;
+    $warn_permissions++ if $Is_Win32; #XXX OS-SPECIFIC
     local(*DIR);
     for (qw/read write/) {
 	$pack{$_}=$from_to{$_};
@@ -326,10 +381,16 @@ sub install {
 		}
 		copy($sourcefile, $targetfile) unless $nonono;
 		print "Installing $targetfile\n";
+		#XXX OS-SPECIFIC
 		utime($atime,$mtime + $Is_VMS,$targetfile) unless $nonono>1;
 		print "utime($atime,$mtime,$targetfile)\n" if $verbose>1;
+
                 $mode = 0444 | ( $mode & 0111 ? 0111 : 0 );
+                $mode = $mode | 0222
+                    if $realtarget ne $targetfile;
                 _chmod( $mode, $targetfile, $verbose );
+
+
 	    } else {
 		print "Skipping $targetfile (unchanged)\n" if $verbose;
 	    }
@@ -347,7 +408,7 @@ sub install {
             chdir $save_cwd;
 
         # File::Find seems to always be Unixy except on MacPerl :(
-	}, $Is_MacPerl ? $Curdir : '.' );
+	}, $Is_MacPerl ? $Curdir : '.' ); #XXX OS-SPECIFIC
 	chdir($cwd) or Carp::croak("Couldn't chdir to $cwd: $!");
     }
 
@@ -361,6 +422,17 @@ sub install {
     _do_cleanup($verbose);
 }
 
+=begin _private
+
+=item _do_cleanup
+
+Standardize finish event for after another instruction has occured.
+Handles converting $MUST_REBOOT to a die for instance.
+
+=end _private
+
+=cut
+
 sub _do_cleanup {
     my ($verbose) = @_;
     if ($MUST_REBOOT) {
@@ -371,10 +443,28 @@ sub _do_cleanup {
             '!' x 72, "\n",
         ;
     } elsif (defined $MUST_REBOOT & $verbose) {
-        warn "Installation will be completed at the next reboot.\n",
+        warn '-' x 72, "\n",
+             "Installation will be completed at the next reboot.\n",
              "However it is not necessary to reboot immediately.\n";
     }
 }
+
+=begin _undocumented
+
+=item install_rooted_file( $file )
+
+Returns $file, or catfile($INSTALL_ROOT,$file) if $INSTALL_ROOT
+is defined.
+
+=item install_rooted_dir( $dir )
+
+Returns $dir, or catdir($INSTALL_ROOT,$dir) if $INSTALL_ROOT
+is defined.
+
+=end _undocumented
+
+=cut
+
 
 sub install_rooted_file {
     if (defined $INSTALL_ROOT) {
@@ -393,15 +483,35 @@ sub install_rooted_dir {
     }
 }
 
+=begin _undocumented
 
-# if tryhard is true then we will use whatever devious tricks we can
-# to delete the file. Currently this only applies to Win32 in that it
-# will try to use Win32API::File to schedule a delete at reboot.
+=item forceunlink( $file, $tryhard )
+
+Tries to delete a file. If $tryhard is true then we will use whatever
+devious tricks we can to delete the file. Currently this only applies to
+Win32 in that it will try to use Win32API::File to schedule a delete at
+reboot. A wrapper for _unlink_or_rename().
+
+=end _undocumented
+
+=cut
+
+
 sub forceunlink {
-    my ( $file, $tryhard )= @_;
+    my ( $file, $tryhard )= @_; #XXX OS-SPECIFIC
     _unlink_or_rename( $file, $tryhard );
 }
 
+=begin _undocumented
+
+=item directory_not_empty( $dir )
+
+Returns 1 if there is an .exists file somewhere in a directory tree.
+Returns 0 if there is not.
+
+=end _undocumented
+
+=cut
 
 sub directory_not_empty ($) {
   my($dir) = @_;
@@ -498,6 +608,18 @@ sub uninstall {
     _do_cleanup($verbose);
 }
 
+=begin _undocumented
+
+=item inc_uninstall($filepath,$libdir,$verbose,$nonono,$ignore)
+
+Remove shadowed files. If $ignore is true then it is assumed to hold
+a filename to ignore. This is used to prevent spurious warnings from
+occuring when doing an install at reboot.
+
+=end _undocumented
+
+=cut
+
 sub inc_uninstall {
     my($filepath,$libdir,$verbose,$nonono,$ignore) = @_;
     my($dir);
@@ -547,6 +669,16 @@ sub inc_uninstall {
 	}
     }
 }
+
+=begin _undocumented
+
+=item run_filter($cmd,$src,$dest)
+
+Filter $src using $cmd into $dest.
+
+=end _undocumented
+
+=cut
 
 sub run_filter {
     my ($cmd, $src, $dest) = @_;
@@ -643,7 +775,7 @@ locking (ie. Windows).  So we wrap it and close the filehandle.
 
 =cut
 
-sub _autosplit {
+sub _autosplit { #XXX OS-SPECIFIC
     my $retval = autosplit(@_);
     close *AutoSplit::IN if defined *AutoSplit::IN{IO};
 
@@ -679,6 +811,18 @@ sub DESTROY {
         print "## Running '$inst' will unlink $plural for you.\n";
     }
 }
+
+=begin _private
+
+=item _invokant
+
+Does a heuristic on the stack to see who called us for more intelligent
+error messages. Currently assumes we will be called only by Module::Build
+or by ExtUtils::MakeMaker.
+
+=end _private
+
+=cut
 
 sub _invokant {
     my @stack;

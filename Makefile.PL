@@ -1,13 +1,19 @@
 use 5.00503;
 use strict;
 
+my $Recommend_Win32API_File = ($^O eq 'MSWin32' || $^O eq 'cygwin');
+
 use ExtUtils::MakeMaker;
 
 WriteMakefile(
     NAME                => 'ExtUtils::Install',
     AUTHOR              => 'demerphq <yves@cpan.org>',
     VERSION_FROM        => 'lib/ExtUtils/Install.pm',
-    ABSTRACT_FROM       => 'lib/ExtUtils/Install.pm',
+    ABSTRACT            => 'install files from here to there',
+
+#   This causes failure to locate ABSTRACT with DISTNAME below set to different name
+#   ABSTRACT_FROM       => 'lib/ExtUtils/Install.pm',
+
     DISTNAME            => 'ex-ExtUtils-Install',
     PL_FILES            => {}, # Avoid auto extracting 'Build.PL'
 
@@ -30,12 +36,14 @@ WriteMakefile(
         'File::Spec' => 0,
 
         ($^O eq 'VMS' ? ('VMS::Filespec' => 0) : ()),
-        ($^O eq 'MSWin32' ? ('Win32API::File' => 0) : ()),
+        ($Recommend_Win32API_File ? ('Win32API::File' => 0) : ()),
 
+        # XXX: ExtUtils::MM apparently not present in perl5.005 MakeMaker
+        # Need to correct version of MakeMaker below or eliminate need for it.
         'ExtUtils::MakeMaker' => 0,
         'ExtUtils::MM' => 0, # for parse_version; rework it ???
 
-        'Test::More' => 0,
+#       'Test::More' => 0, # This is bundled, but not in @INC for prereqs
     },
 
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },

@@ -20,5 +20,40 @@ handle such scenario when rebooting.
 - Refactored reboot support. Integrated changes from Randy Sims
 in p5p message 4413F4E9.7090802@thepierianspring.org
 
+1.3701 2006-03-13 20:00
+
+- Integrated patch from Randy Sims.
+
+    1. Fixes error during `perl Makefile.PL` because it MakeMaker can't
+    find the NAME section describing DISTNAME (which has the 'ex-'
+    prefix).
+
+    2. Win32API::File is recommended on MSWin32 && cygwin.
+
+    3. Under Perl5.005, ExtUtils::MM is not present in the version of
+    MakeMaker included. I don't know what version first includes it.
+    Needs research or better: eliminate need for it.
+
+    4. Test::More is bundled with the distro for its test suite. This
+    would be needed on Perl5.005, for example. It was listed as a
+    requirement, but the directory it's bundled in is not in @INC when
+    prereqs are checked. I removed the prereq from Build.PL &
+    Makefile.PL. Other options: 1) fixup @INC to include t/lib; or 2)
+    unbundle and add back to prereqs.
+
+    4. Update t/pod.t t/pod-coverage fixup of @INC so it can find
+    bundled Test::More.
+
+- Fixed pod/coverage related issues.
+
+- When trying to schedule a delete at reboot after renaming a dll out of
+the way no error occurs if Win32API::File isn't available. Instead it
+merely warns that the file should be hand deleted.
+
+- Fixed install at reboot behaviour by making sure the temporar file is
+writable after install (normally files installed are readonly)
+
+
+
 
 

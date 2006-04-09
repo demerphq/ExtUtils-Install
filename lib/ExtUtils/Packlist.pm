@@ -9,6 +9,16 @@ $VERSION = '1.35';
 # Used for generating filehandle globs.  IO::File might not be available!
 my $fhname = "FH1";
 
+=begin _undocumented
+
+=item mkfh()
+
+Make a filehandle. Same kind of idea as Symbol::gensym().
+
+=end _undocumented
+
+=cut
+
 sub mkfh()
 {
 no strict;

@@ -2,6 +2,8 @@ use strict;
 
 use Module::Build;
 
+my $Recommend_Win32API_File = ($^O eq 'MSWin32' || $^O eq 'cygwin');
+
 my $builder = Module::Build->new(
     module_name         => 'ExtUtils::Install',
     license             => 'perl',
@@ -10,7 +12,7 @@ my $builder = Module::Build->new(
     dist_version_from   => 'lib/ExtUtils/Install.pm',
 
     build_requires => {
-        'Test::More' => 0,
+#       'Test::More' => 0, # This is bundled, but not in @INC for prereqs
     },
 
     requires => {
@@ -39,7 +41,7 @@ my $builder = Module::Build->new(
     },
 
     recommends => {
-        ($^O eq 'MSWin32' ? ('Win32API::File' => 0) : ()),
+        ($Recommend_Win32API_File ? ('Win32API::File' => 0) : ()),
     },
 );
 
