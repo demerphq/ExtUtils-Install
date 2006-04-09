@@ -3,7 +3,8 @@ use 5.00503;
 use strict;
 
 use vars qw(@ISA @EXPORT $VERSION $MUST_REBOOT %Config);
-$VERSION = '1.3702'; # experimental release
+$VERSION = '1.38';
+$VERSION = eval $VERSION;
 
 use Exporter;
 use Carp ();
@@ -252,7 +253,7 @@ sub _unlink_or_rename { #XXX OS-SPECIFIC
 =item B<install>
 
     install(\%from_to);
-    install(\%from_to, $verbose, $dont_execute, $uninstall_shadows,$skip);
+    install(\%from_to, $verbose, $dont_execute, $uninstall_shadows, $skip);
 
 Copies each directory tree of %from_to to its corresponding value
 preserving timestamps and permissions.
@@ -275,18 +276,78 @@ without actually doing it.  Default is false.
 If $uninstall_shadows is true any differing versions throughout @INC
 will be uninstalled.  This is "make install UNINST=1"
 
-As of 1.3702 install() supports the use of a list of patterns to filter
+As of 1.37_02 install() supports the use of a list of patterns to filter
 out files that shouldn't be installed. If $skip is omitted or undefined
-then install will try to read the list from the INSTALL.SKIP or if that
-isn't present the MANIFEST.SKIP file in the current directory. See
-L<ExtUtils::Manifest> to see how this file is structured.  If $skip is
-defined but false then no autodetection will occur, and no skip list
-used. If $skip is a reference to an array then it is assumed the array
-contains the list of patterns, otherwise $skip is assumed to hold the
-filename holding the list of patterns.
+then install will try to read the list from INSTALL.SKIP in the CWD.
+This file is a list of regular expressions and is just like the
+MANIFEST.SKIP file used by L<ExtUtils::Manifest>.
+
+A default site INSTALL.SKIP may be provided by setting then environment
+variable EU_INSTALL_SITE_SKIPFILE, this will only be used when there
+isn't a distribution specific INSTALL.SKIP. If the environment variable
+EU_INSTALL_IGNORE_SKIP is true then no install file filtering will be
+performed.
+
+If $skip is undefined then the skip file will be autodetected and used if it
+is found. If $skip is a reference to an array then it is assumed
+the array contains the list of patterns, if $skip is a true non reference it is
+assumed to be the filename holding the list of patterns, any other value of
+$skip is taken to mean that no install filtering should occur.
+
 
 =cut
 
+#
+# Handles the reading the skip file.
+#
+sub _get_install_skip {
+    my ( $skip, $verbose )= @_;
+    if ($ENV{EU_INSTALL_IGNORE_SKIP}) {
+        print "EU_INSTALL_IGNORE_SKIP is set, ignore skipfile settings\n"
+            if $verbose>2;
+        return [];
+    }
+    if ( ! defined $skip ) {
+        print "Looking for install skip list\n"
+            if $verbose>2;
+        for my $file ( 'INSTALL.SKIP', $ENV{EU_INSTALL_SITE_SKIPFILE} ) {
+            next unless $file;
+            print "\tChecking for $file\n"
+                if $verbose>2;
+            if (-e $file) {
+                $skip= $file;
+                last;
+            }
+        }
+    }
+    if ($skip && !ref $skip) {
+        print "Reading skip patterns from '$skip'.\n"
+            if $verbose;
+        if (open my $fh,$skip ) {
+            my @patterns;
+            while (<$fh>) {
+                chomp;
+                next if /^\s*(?:#|$)/;
+                print "\tSkip pattern: $_\n" if $verbose>3;
+                push @patterns, $_;
+            }
+            $skip= \@patterns;
+        } else {
+            warn "Can't read skip file:'$skip':$!\n";
+            $skip=[];
+        }
+    } elsif ( UNIVERSAL::isa($skip,'ARRAY') ) {
+        print "Using array for skip list\n"
+            if $verbose>2;
+    } elsif ($verbose) {
+        print "No skip list found.\n"
+            if $verbose>1;
+        $skip= [];
+    }
+    warn "Got @{[0+@$skip]} skip patterns.\n"
+        if $verbose>3;
+    return $skip
+}
 
 
 sub install { #XXX OS-SPECIFIC
@@ -302,41 +363,8 @@ sub install { #XXX OS-SPECIFIC
     use File::Path qw(mkpath);
     use File::Compare qw(compare);
 
-    if (!defined $skip && ! $ENV{EU_INSTALL_IGNORE_SKIP} ) {
-        print "Looking for install skip list\n"
-            if $verbose>2;
-        for ( qw( INSTALL.SKIP MANIFEST.SKIP ) ) {
-            print "\tChecking for $_\n"
-                if $verbose>2;
-            if (-e $_) {
-                $skip=$_;
-                last;
-            }
-        }
-    }
-    if ($skip && !ref $skip) {
-        print "Reading skip patterns from '$skip'.\n";
-        if (open my $fh,$skip ) {
-            my @qr;
-            while (<$fh>) {
-                chomp;
-                next if /^\s*(?:#|$)/;
-                print "\tSkip pattern: $_\n" if $verbose>3;
-                push @qr,qr/$_/;
-            }
-            $skip=\@qr;
-        } else {
-            warn "Can't read skip file:'$skip':$!\n";
-        }
-    } elsif (ref $skip) {
-        print "Using array for skip list\n"
-            if $verbose>2;
-    } elsif ($verbose) {
-        print "No skip list found.\n"
-            if $verbose>1;
-    }
-    $skip||=[];
-    warn "Got @{[0+@$skip]} skip patterns.\n" if $verbose>3;
+    $skip= _get_install_skip($skip,$verbose);
+
     my(%from_to) = %$from_to;
     my(%pack, $dir, $warn_permissions);
     my($packlist) = ExtUtils::Packlist->new();
@@ -909,8 +937,12 @@ Will be prepended to each install path.
 
 =item B<EU_INSTALL_IGNORE_SKIP>
 
-Will prevent the automatic use of INSTALL.SKIP or MANIFEST.SKIP
-as the install skip file.
+Will prevent the automatic use of INSTALL.SKIP as the install skip file.
+
+=item B<EU_INSTALL_SITE_SKIPFILE>
+
+If there is no INSTALL.SKIP file in the make directory then this value
+can be used to provide a default.
 
 =back
 
@@ -918,19 +950,10 @@ as the install skip file.
 
 Original author lost in the mists of time.  Probably the same as Makemaker.
 
-This experimental release is maintained by demerphq C<yves@cpan.org>
-
-Please direct any issues to the above email, the following concerns the
-production release only:
-
-Production release currently maintained by Michael G Schwern C<schwern@pobox.com>
-
-Send patches and ideas to C<makemaker@perl.org>.
+Production release currently maintained by demerphq C<yves at cpan.org>
 
 Send bug reports via http://rt.cpan.org/.  Please send your
 generated Makefile along with your report.
-
-For more up-to-date information, see L<http://www.makemaker.org>.
 
 =head1 LICENSE
 

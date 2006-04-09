@@ -4,7 +4,8 @@ use 5.00503;
 use strict;
 use Carp qw();
 use vars qw($VERSION);
-$VERSION = '1.35';
+$VERSION = '1.38';
+$VERSION = eval $VERSION;
 
 # Used for generating filehandle globs.  IO::File might not be available!
 my $fhname = "FH1";

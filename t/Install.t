@@ -17,7 +17,7 @@ use TieOut;
 use File::Path;
 use File::Spec;
 
-use Test::More tests => 32;
+use Test::More tests => 33;
 
 use MakeMaker::Test::Setup::BFD;
 
@@ -72,6 +72,7 @@ install( { 'blib/lib' => 'install-test/lib/perl',
          } );
 ok( -d 'install-test/lib/perl',                 'install made dir' );
 ok( -r 'install-test/lib/perl/Big/Dummy.pm',    '  .pm file installed' );
+ok(!-r 'install-test/lib/perl/Big/Dummy.SKIP',  '  ignored .SKIP file' );
 ok( -r 'install-test/packlist',                 '  packlist exists' );
 
 open(PACKLIST, 'install-test/packlist' );

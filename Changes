@@ -62,5 +62,13 @@ loaded. If neither exists then no filtration occurs.  The env variable
 EU_INSTALL_IGNORE_SKIP may be set to a true value to override this behaviour.
 This means that you can make .svn directories be ignored on install.
 
+1.38 2006-04-02 17:31
+
+- Removed MANIFEST.SKIP support (INSTALL.SKIP still supported), and
+added support for providing a fallback skip file by using
+ENV{EU_INSTALL_SITE_SKIP} as a fallback if there is not a distribution
+specific skip file.
+
+- Released under the ExtUtils-Install-1.38 Name
 
 

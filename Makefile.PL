@@ -14,7 +14,7 @@ WriteMakefile(
 #   This causes failure to locate ABSTRACT with DISTNAME below set to different name
 #   ABSTRACT_FROM       => 'lib/ExtUtils/Install.pm',
 
-    DISTNAME            => 'ex-ExtUtils-Install',
+    DISTNAME            => 'ExtUtils-Install',
     PL_FILES            => {}, # Avoid auto extracting 'Build.PL'
 
     PREREQ_PM => {

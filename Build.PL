@@ -7,7 +7,7 @@ my $Recommend_Win32API_File = ($^O eq 'MSWin32' || $^O eq 'cygwin');
 my $builder = Module::Build->new(
     module_name         => 'ExtUtils::Install',
     license             => 'perl',
-    dist_name           => 'ex-ExtUtils-Install',
+    dist_name           => 'ExtUtils-Install',
     dist_author         => 'demerphq <yves@cpan.org>',
     dist_version_from   => 'lib/ExtUtils/Install.pm',
 
