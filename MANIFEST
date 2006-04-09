@@ -5,6 +5,8 @@ lib/ExtUtils/Installed.pm
 lib/ExtUtils/Packlist.pm
 Makefile.PL
 MANIFEST
+MANIFEST.SKIP
+INSTALL.SKIP
 META.yml			# Will be created by "make dist"
 README
 t/Install.t
