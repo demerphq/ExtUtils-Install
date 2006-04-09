@@ -1,20 +1,30 @@
 package ExtUtils::Install;
 
 use 5.00503;
-use vars qw(@ISA @EXPORT $VERSION $MUST_REBOOT);
-$VERSION = '1.36';
+use strict;
+
+use vars qw(@ISA @EXPORT $VERSION $MUST_REBOOT %Config);
+$VERSION = '1.37'; # experimental release
 
 use Exporter;
 use Carp ();
 use Config qw(%Config);
+
 @ISA = ('Exporter');
 @EXPORT = ('install','uninstall','pm_to_blib', 'install_default');
-$Is_VMS     = $^O eq 'VMS';
-$Is_MacPerl = $^O eq 'MacOS';
-$Is_Win32   = $^O eq 'MSWin32';
 
-# used by win32 stuff only currently
-my $Has_APIFile;         # when defined tells whether Win32API::File is installed
+my $Is_VMS     = $^O eq 'VMS';
+my $Is_MacPerl = $^O eq 'MacOS';
+my $Is_Win32   = $^O eq 'MSWin32';
+my $Is_cygwin  = $^O eq 'cygwin';
+my $CanMoveAtBoot = ($Is_Win32 || $Is_cygwin);
+
+# *note* CanMoveAtBoot is only incidentally the same condition as below
+# this needs not hold true in the future.
+my $Has_Win32API_File = ($Is_Win32 || $Is_cygwin)
+    ? (eval {require Win32API::File; 1} || 0)
+    : 0;
+
 
 my $Inc_uninstall_warn_handler;
 
@@ -25,6 +35,7 @@ my $INSTALL_ROOT = $ENV{PERL_INSTALL_ROOT};
 use File::Spec;
 my $Curdir = File::Spec->curdir;
 my $Updir  = File::Spec->updir;
+
 
 =head1 NAME
 
@@ -69,6 +80,7 @@ ocurred, but should not impact later operations.
 
 =cut
 
+
 sub _chmod($$;$) {
     my ( $mode, $item, $verbose )=@_;
     $verbose ||= 0;
@@ -79,6 +91,103 @@ sub _chmod($$;$) {
         warn "Failed chmod($mode, $item): $err\n"
             if -e $item;
     }
+}
+
+# Schedules a file to be moved/renamed/deleted at next boot.
+# $file should be a filespec of an existing file
+# $target should be a ref to an array if the file is to be deleted
+# otherwise it should be a filespec for a rename. If the file is existing
+# it will be replaced.
+# returns 1 on success, undef if the operation is meaningless on the
+# current OS, and dies otherwise.
+# Sets $MUST_REBOOT to 0 to indicate a deletion operation has occured
+# and sets it to 1 to indicate that a move operation has been requested.
+#
+
+sub _move_file_at_boot {
+    my ( $file, $target )= @_;
+    Carp::confess("Panic: Can't _move_file_at_boot on this platform!")
+         unless $CanMoveAtBoot;
+
+    my $descr= ref $target
+                ? "'$file' for deletion"
+                : "'$file' for installation as '$target'";
+
+    if ( ! $Has_Win32API_File ) {
+        die '!' x 72, "\n",
+            "ERROR: Cannot schedule $descr at reboot.",
+            "Try installing Win32API::File to allow operations on locked files\n",
+            "to be scheduled during reboot. Or try to perform the operation by hand yourself.\n",
+            '!' x 72, "\n";
+    }
+    my $opts= Win32API::File::MOVEFILE_DELAY_UNTIL_REBOOT();
+    $opts= $opts | Win32API::File::MOVEFILE_REPLACE_EXISTING()
+        unless ref $target;
+
+    _chmod( 0666, $file );
+    _chmod( 0666, $target ) unless ref $target;
+
+    if (Win32API::File::MoveFileEx( $file, $target, $opts )) {
+        $MUST_REBOOT ||= ref $target ? 0 : 1;
+        return 1;
+    } else {
+        die '!' x 72, "\n",
+            "ERROR: MoveFileEx $descr at reboot failed: $^E\n",
+            '!' x 72, "\n";
+    }
+}
+
+#
+# _unlink_or_rename
+#
+# Tries to unlink $file, if unlink isnt possible tries to rename the
+# file to a temporary name and schedule the file for deletion later.
+# If the rename fails and $installing is true then schedules that
+# the tempfile be renamed to the correct name at boot.
+# Returns the filename to use for installation or the filename that
+# was deleted. Dies on failure.
+# Note that when $installing is true the caller is expected to install
+# the file under the returned filename.
+#
+#
+
+sub _unlink_or_rename {
+    my ( $file, $tryhard, $installing )= @_;
+
+    _chmod( 0666, $file );
+    unlink $file
+        and return $file;
+    my $error="$!";
+
+    Carp::croak('!' x 72, "\n",
+            "ERROR: Cannot unlink '$file': $!\n",
+            '!' x 72, "\n")
+          unless $CanMoveAtBoot && $tryhard;
+
+    my $tmp= "AAA";
+    ++$tmp while -e "$file.$tmp";
+    $tmp= "$file.$tmp";
+
+    warn "WARNING: Unable to unlink '$file': $error\n",
+         "Going to try to rename it to '$tmp'.\n";
+
+    if ( rename $file, $tmp ) {
+        warn "Rename succesful.\n",
+             "WARNING: Scheduling '$tmp' for deletion at reboot.\n";
+        _move_file_at_boot( $tmp, [] );
+	return $file;
+    } elsif ( $installing ) {
+        warn "WARNING: Rename failed: $!\n",
+             "WARNING: Scheduling '$tmp' for installation as '$file' at reboot.\n";
+        _move_file_at_boot( $tmp, $file );
+        return $tmp;
+    } else {
+        Carp::croak('!' x 72, "\n",
+            "ERROR: Cannot unlink '$file': $error\n",
+            "ERROR: Cannot rename '$file': $!\n",
+            '!' x 72, "\n");
+    }
+
 }
 
 =head2 Functions
@@ -116,7 +225,7 @@ will be uninstalled.  This is "make install UNINST=1"
 
 sub install {
     my($from_to,$verbose,$nonono,$inc_uninstall) = @_;
-    $verbose ||= $ENV{DEBUG_EUMM} || 0;
+    $verbose ||= 0;
     $nonono  ||= 0;
 
     use Cwd qw(cwd);
@@ -127,12 +236,11 @@ sub install {
     use File::Path qw(mkpath);
     use File::Compare qw(compare);
 
-    my $win32_special;
     my(%from_to) = %$from_to;
     my(%pack, $dir, $warn_permissions);
     my($packlist) = ExtUtils::Packlist->new();
     # -w doesn't work reliably on FAT dirs
-    $warn_permissions++ if $^O eq 'MSWin32';
+    $warn_permissions++ if $Is_Win32;
     local(*DIR);
     for (qw/read write/) {
 	$pack{$_}=$from_to{$_};
@@ -182,6 +290,7 @@ sub install {
 	}
 
         chdir $source or next;
+
 	find(sub {
 	    my ($mode,$size,$atime,$mtime) = (stat)[2,7,8,9];
 	    return unless -f _;
@@ -202,57 +311,15 @@ sub install {
 		# We have a good chance, we can skip this one
 		$diff = compare($sourcefile, $targetfile);
 	    } else {
-		print "$sourcefile differs\n" if $verbose>1;
 		$diff++;
 	    }
-
+            print "$sourcefile differs\n" if $diff && $verbose>1;
+            my $realtarget= $targetfile;
 	    if ($diff) {
-	        if ( !$nonono && $Is_Win32
-	             && -f $targetfile
-	             && !unlink $targetfile )
-	        {
-	            my $error="$!";
-
-	            $Has_APIFile= eval { require Win32API::File; 1 } || 0
-	                if ! defined $Has_APIFile;
-
-                    Carp::croak(
-                        "Cannot unlink $targetfile: $error\n",
-                        "If you install Win32API::File I can use ",
-                        "it to try to complete the install at reboot\n"
-                    ) if ! $Has_APIFile;
-
-    	            print "Can't remove existing '$targetfile': $error\n";
-
-    	            # make a temporary file name to use for installation.
-    	            # if we can rename then the temp file will used for the
-    	            # old file, if we can't then the file will be installed as
-    	            # the temp name, and renamed into the correct name at boot
-    	            my $tmp= "AAA";
-    	            ++$tmp while -e "$targetfile.$tmp";
-    	            $tmp= "$targetfile.$tmp";
-    	            if ( rename $targetfile, $tmp ) {
-    	                _chmod(0666, $tmp, $verbose);
-    	                print "However it has been renamed as '$tmp' which ".
-    	                      "will be removed at next boot.\n";
-    	                Win32API::File::MoveFileEx( $tmp, [],
-    	                    Win32API::File::MOVEFILE_DELAY_UNTIL_REBOOT() )
-    	                    or die "MoveFileEx/Delete '$tmp' failed: $^E\n";
-    	                $MUST_REBOOT||= 0;
-    	            } else {
-    	                _chmod(0666, $targetfile, $verbose);
-
-    	                print "Installation cannot be completed until you reboot.\n",
-    	                      "Until then using '$tmp' as the install filename.\n";
-    	                Win32API::File::MoveFileEx( $tmp, $targetfile,
-    	                    Win32API::File::MOVEFILE_REPLACE_EXISTING() |
-    	                    Win32API::File::MOVEFILE_DELAY_UNTIL_REBOOT() )
-    	                    or die "MoveFileEx/Replace '$tmp' failed: $^E\n";
-    	                $MUST_REBOOT||= 1;
-    	                $targetfile= $tmp;
-    	            }
-    	        } elsif (-f $targetfile) {
-		    forceunlink($targetfile) unless $nonono;
+	        if (-f $targetfile) {
+	            print "_unlink_or_rename($targetfile)\n" if $verbose>1;
+		    $targetfile= _unlink_or_rename( $targetfile, 'tryhard', 'install' )
+		        unless $nonono;
 		} else {
 		    mkpath($targetdir,0,0755) unless $nonono;
 		    print "mkpath($targetdir,0,0755)\n" if $verbose>1;
@@ -267,9 +334,10 @@ sub install {
 		print "Skipping $targetfile (unchanged)\n" if $verbose;
 	    }
 
-	    if (defined $inc_uninstall) {
+	    if ( defined $inc_uninstall ) {
 		inc_uninstall($sourcefile,$File::Find::dir,$verbose,
-                              $inc_uninstall ? 0 : 1);
+                              $inc_uninstall ? 0 : 1,
+                              $realtarget ne $targetfile ? $realtarget : "");
 	    }
 
 	    # Record the full pathname.
@@ -282,16 +350,28 @@ sub install {
 	}, $Is_MacPerl ? $Curdir : '.' );
 	chdir($cwd) or Carp::croak("Couldn't chdir to $cwd: $!");
     }
+
     if ($pack{'write'}) {
 	$dir = install_rooted_dir(dirname($pack{'write'}));
 	mkpath($dir,0,0755) unless $nonono;
 	print "Writing $pack{'write'}\n";
 	$packlist->write(install_rooted_file($pack{'write'})) unless $nonono;
     }
+
+    _do_cleanup($verbose);
+}
+
+sub _do_cleanup {
+    my ($verbose) = @_;
     if ($MUST_REBOOT) {
-        die "You must reboot to complete this installation.\n";
-    } elsif (defined $MUST_REBOOT) {
-        warn "Full installation will not be complete until next reboot.\n",
+        die
+            '!' x 72, "\n",
+            "Operation not completed: ",
+            "Please reboot to complete the Installation.\n",
+            '!' x 72, "\n",
+        ;
+    } elsif (defined $MUST_REBOOT & $verbose) {
+        warn "Installation will be completed at the next reboot.\n",
              "However it is not necessary to reboot immediately.\n";
     }
 }
@@ -313,35 +393,13 @@ sub install_rooted_dir {
     }
 }
 
+
 # if tryhard is true then we will use whatever devious tricks we can
-# to delete the file. Currently this only applies to only Win32 in
-# that it will try to use Win32API::File to schedule a delete at reboot.
+# to delete the file. Currently this only applies to Win32 in that it
+# will try to use Win32API::File to schedule a delete at reboot.
 sub forceunlink {
     my ( $file, $tryhard )= @_;
-    _chmod( 0666, $file );
-    my $ok= unlink $file;
-    return if $ok;
-    $error= "$!"; # preserve the error string.
-    if ( $tryhard && $Is_Win32 ) {
-
-        $Has_APIFile= eval { require Win32API::File; 1 } || 0
-            if ! defined $Has_APIFile;
-
-        if ( ! $Has_APIFile ) {
-            $error .= "\nIf you install Win32API::File I can try to use it to "
-                   .  "uninstall this file at reboot.";
-        } elsif ( Win32API::File::MoveFileEx( $file, [],
-                Win32API::File::MOVEFILE_DELAY_UNTIL_REBOOT() )
-        ){
-            print "Scheduled '$file' for deletion at next reboot.\n";
-            $MUST_REBOOT||= 0;
-            return;
-        } else {
-            $error.="\nCannot schedule '$tmp' for deletion at reboot: $^E.\n";
-        }
-
-    }
-    Carp::croak( "Cannot forceunlink $file: $error\n");
+    _unlink_or_rename( $file, $tryhard );
 }
 
 
@@ -436,18 +494,14 @@ sub uninstall {
 	forceunlink($_,'tryhard') unless $nonono;
     }
     print "unlink $fil\n" if $verbose;
-    forceunlink($fil,'tryhard') unless $nonono;
-    if ($MUST_REBOOT) {
-        die "You must reboot to complete this installation.\n";
-    } elsif (defined $MUST_REBOOT) {
-        warn "Full installation will not be complete until next reboot.\n",
-             "However it is not necessary to reboot immediately.\n";
-    }
+    forceunlink($fil, 'tryhard') unless $nonono;
+    _do_cleanup($verbose);
 }
 
 sub inc_uninstall {
-    my($filepath,$libdir,$verbose,$nonono) = @_;
+    my($filepath,$libdir,$verbose,$nonono,$ignore) = @_;
     my($dir);
+    $ignore||="";
     my $file = (File::Spec->splitpath($filepath))[2];
     my %seen_dir = ();
 
@@ -458,9 +512,10 @@ sub inc_uninstall {
 						  privlibexp
 						  sitearchexp
 						  sitelibexp)}) {
-	next if $dir eq $Curdir;
-	next if $seen_dir{$dir}++;
-	my($targetfile) = File::Spec->catfile($dir,$libdir,$file);
+	my $canonpath = File::Spec->canonpath($dir);
+	next if $canonpath eq $Curdir;
+	next if $seen_dir{$canonpath}++;
+	my $targetfile = File::Spec->catfile($canonpath,$libdir,$file);
 	next unless -f $targetfile;
 
 	# The reason why we compare file's contents is, that we cannot
@@ -471,11 +526,11 @@ sub inc_uninstall {
 	    # We have a good chance, we can skip this one
 	    $diff = compare($filepath,$targetfile);
 	} else {
-	    print "#$file and $targetfile differ\n" if $verbose>1;
 	    $diff++;
 	}
+        print "#$file and $targetfile differ\n" if $diff && $verbose > 1;
 
-	next unless $diff;
+	next if !$diff or $targetfile eq $ignore;
 	if ($nonono) {
 	    if ($verbose) {
 		$Inc_uninstall_warn_handler ||= ExtUtils::Install::Warn->new();
@@ -618,9 +673,30 @@ sub DESTROY {
             }
         }
         $plural = $i>1 ? "all those files" : "this file";
-        print "## Running 'make install UNINST=1' will unlink $plural for you.\n";
+        my $inst = (_invokant() eq 'ExtUtils::MakeMaker')
+                 ? ( $Config::Config{make} || 'make' ).' install UNINST=1'
+                 : './Build install uninst=1';
+        print "## Running '$inst' will unlink $plural for you.\n";
     }
 }
+
+sub _invokant {
+    my @stack;
+    my $frame = 0;
+    while (my $file = (caller($frame++))[1]) {
+        push @stack, (File::Spec->splitpath($file))[2];
+    }
+
+    my $builder;
+    my $top = pop @stack;
+    if ($top =~ /^Build/i || exists($INC{'Module/Build.pm'})) {
+        $builder = 'Module::Build';
+    } else {
+        $builder = 'ExtUtils::MakeMaker';
+    }
+    return $builder;
+}
+
 
 =back
 

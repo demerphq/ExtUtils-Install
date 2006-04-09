@@ -15,3 +15,10 @@ handle such scenario when rebooting.
 
 - Released as ex-ExtUtils-Install by demerphq
 
+1.37 2006-03-12 23:20
+
+- Refactored reboot support. Integrated changes from Randy Sims
+in p5p message 4413F4E9.7090802@thepierianspring.org
+
+
+
