@@ -1,8 +1,8 @@
 ---
-name: ExtUtils-Install
-version: 1.35
+name: ex-ExtUtils-Install
+version: 1.36
 author:
-  - Michael G Schwern <schwern@pobox.com>
+  - 'demerphq <yves@cpan.org>'
 abstract: install files from here to there
 license: perl
 resources:
@@ -30,7 +30,7 @@ recommends:
 provides:
   ExtUtils::Install:
     file: lib/ExtUtils/Install.pm
-    version: 1.35
+    version: 1.36
   ExtUtils::Install::Warn:
     file: lib/ExtUtils/Install.pm
   ExtUtils::Installed:

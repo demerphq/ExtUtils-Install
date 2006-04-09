@@ -1,8 +1,8 @@
 package ExtUtils::Install;
 
 use 5.00503;
-use vars qw(@ISA @EXPORT $VERSION);
-$VERSION = '1.35';
+use vars qw(@ISA @EXPORT $VERSION $MUST_REBOOT);
+$VERSION = '1.36';
 
 use Exporter;
 use Carp ();
@@ -11,6 +11,10 @@ use Config qw(%Config);
 @EXPORT = ('install','uninstall','pm_to_blib', 'install_default');
 $Is_VMS     = $^O eq 'VMS';
 $Is_MacPerl = $^O eq 'MacOS';
+$Is_Win32   = $^O eq 'MSWin32';
+
+# used by win32 stuff only currently
+my $Has_APIFile;         # when defined tells whether Win32API::File is installed
 
 my $Inc_uninstall_warn_handler;
 
@@ -21,7 +25,6 @@ my $INSTALL_ROOT = $ENV{PERL_INSTALL_ROOT};
 use File::Spec;
 my $Curdir = File::Spec->curdir;
 my $Updir  = File::Spec->updir;
-
 
 =head1 NAME
 
@@ -46,6 +49,37 @@ pages, etc...
 Both install() and uninstall() are specific to the way
 ExtUtils::MakeMaker handles the installation and deinstallation of
 perl modules. They are not designed as general purpose tools.
+
+On some operating systems such as Win32 installation may not be possible
+until after a reboot has occured. This can have varying consequences:
+removing an old DLL does not impact programs using the new one, but if
+a new DLL cannot be installed properly until reboot then anything
+depending on it must wait. The package variable
+
+  $ExtUtils::Install::MUST_REBOOT
+
+is used to store this status.
+
+If this variable is true then such an operation has occured and
+anything depending on this module cannot proceed until a reboot
+has occured.
+
+If this value is defined but false then such an operation has
+ocurred, but should not impact later operations.
+
+=cut
+
+sub _chmod($$;$) {
+    my ( $mode, $item, $verbose )=@_;
+    $verbose ||= 0;
+    if (chmod $mode, $item) {
+        print "chmod($mode, $item)\n" if $verbose > 1;
+    } else {
+        my $err="$!";
+        warn "Failed chmod($mode, $item): $err\n"
+            if -e $item;
+    }
+}
 
 =head2 Functions
 
@@ -78,9 +112,11 @@ will be uninstalled.  This is "make install UNINST=1"
 
 =cut
 
+
+
 sub install {
     my($from_to,$verbose,$nonono,$inc_uninstall) = @_;
-    $verbose ||= 0;
+    $verbose ||= $ENV{DEBUG_EUMM} || 0;
     $nonono  ||= 0;
 
     use Cwd qw(cwd);
@@ -91,9 +127,7 @@ sub install {
     use File::Path qw(mkpath);
     use File::Compare qw(compare);
 
-    my $win32_special=!$nonono &&
-                      $^O eq 'MSWin32' &&
-                      eval { require Win32API::File; 1 };
+    my $win32_special;
     my(%from_to) = %$from_to;
     my(%pack, $dir, $warn_permissions);
     my($packlist) = ExtUtils::Packlist->new();
@@ -172,25 +206,49 @@ sub install {
 		$diff++;
 	    }
 
-	    if ($diff){
-    	        if ($win32_special && -f $targetfile && !unlink $targetfile) {
-    	            print "Can't remove existing '$targetfile': $!\n";
+	    if ($diff) {
+	        if ( !$nonono && $Is_Win32
+	             && -f $targetfile
+	             && !unlink $targetfile )
+	        {
+	            my $error="$!";
+
+	            $Has_APIFile= eval { require Win32API::File; 1 } || 0
+	                if ! defined $Has_APIFile;
+
+                    Carp::croak(
+                        "Cannot unlink $targetfile: $error\n",
+                        "If you install Win32API::File I can use ",
+                        "it to try to complete the install at reboot\n"
+                    ) if ! $Has_APIFile;
+
+    	            print "Can't remove existing '$targetfile': $error\n";
+
+    	            # make a temporary file name to use for installation.
+    	            # if we can rename then the temp file will used for the
+    	            # old file, if we can't then the file will be installed as
+    	            # the temp name, and renamed into the correct name at boot
     	            my $tmp= "AAA";
     	            ++$tmp while -e "$targetfile.$tmp";
     	            $tmp= "$targetfile.$tmp";
     	            if ( rename $targetfile, $tmp ) {
+    	                _chmod(0666, $tmp, $verbose);
     	                print "However it has been renamed as '$tmp' which ".
-    	                      "will be removed at next reboot.\n";
+    	                      "will be removed at next boot.\n";
     	                Win32API::File::MoveFileEx( $tmp, [],
     	                    Win32API::File::MOVEFILE_DELAY_UNTIL_REBOOT() )
     	                    or die "MoveFileEx/Delete '$tmp' failed: $^E\n";
+    	                $MUST_REBOOT||= 0;
     	            } else {
+    	                _chmod(0666, $targetfile, $verbose);
+
     	                print "Installation cannot be completed until you reboot.\n",
     	                      "Until then using '$tmp' as the install filename.\n";
     	                Win32API::File::MoveFileEx( $tmp, $targetfile,
     	                    Win32API::File::MOVEFILE_REPLACE_EXISTING() |
     	                    Win32API::File::MOVEFILE_DELAY_UNTIL_REBOOT() )
     	                    or die "MoveFileEx/Replace '$tmp' failed: $^E\n";
+    	                $MUST_REBOOT||= 1;
     	                $targetfile= $tmp;
     	            }
     	        } elsif (-f $targetfile) {
@@ -203,15 +261,14 @@ sub install {
 		print "Installing $targetfile\n";
 		utime($atime,$mtime + $Is_VMS,$targetfile) unless $nonono>1;
 		print "utime($atime,$mtime,$targetfile)\n" if $verbose>1;
-		$mode = 0444 | ( $mode & 0111 ? 0111 : 0 );
-		chmod $mode, $targetfile;
-		print "chmod($mode, $targetfile)\n" if $verbose>1;
+                $mode = 0444 | ( $mode & 0111 ? 0111 : 0 );
+                _chmod( $mode, $targetfile, $verbose );
 	    } else {
 		print "Skipping $targetfile (unchanged)\n" if $verbose;
 	    }
 
 	    if (defined $inc_uninstall) {
-		inc_uninstall($sourcefile,$File::Find::dir,$verbose, 
+		inc_uninstall($sourcefile,$File::Find::dir,$verbose,
                               $inc_uninstall ? 0 : 1);
 	    }
 
@@ -230,6 +287,12 @@ sub install {
 	mkpath($dir,0,0755) unless $nonono;
 	print "Writing $pack{'write'}\n";
 	$packlist->write(install_rooted_file($pack{'write'})) unless $nonono;
+    }
+    if ($MUST_REBOOT) {
+        die "You must reboot to complete this installation.\n";
+    } elsif (defined $MUST_REBOOT) {
+        warn "Full installation will not be complete until next reboot.\n",
+             "However it is not necessary to reboot immediately.\n";
     }
 }
 
@@ -250,10 +313,35 @@ sub install_rooted_dir {
     }
 }
 
-
+# if tryhard is true then we will use whatever devious tricks we can
+# to delete the file. Currently this only applies to only Win32 in
+# that it will try to use Win32API::File to schedule a delete at reboot.
 sub forceunlink {
-    chmod 0666, $_[0];
-    unlink $_[0] or Carp::croak("Cannot forceunlink $_[0]: $!")
+    my ( $file, $tryhard )= @_;
+    _chmod( 0666, $file );
+    my $ok= unlink $file;
+    return if $ok;
+    $error= "$!"; # preserve the error string.
+    if ( $tryhard && $Is_Win32 ) {
+
+        $Has_APIFile= eval { require Win32API::File; 1 } || 0
+            if ! defined $Has_APIFile;
+
+        if ( ! $Has_APIFile ) {
+            $error .= "\nIf you install Win32API::File I can try to use it to "
+                   .  "uninstall this file at reboot.";
+        } elsif ( Win32API::File::MoveFileEx( $file, [],
+                Win32API::File::MOVEFILE_DELAY_UNTIL_REBOOT() )
+        ){
+            print "Scheduled '$file' for deletion at next reboot.\n";
+            $MUST_REBOOT||= 0;
+            return;
+        } else {
+            $error.="\nCannot schedule '$tmp' for deletion at reboot: $^E.\n";
+        }
+
+    }
+    Carp::croak( "Cannot forceunlink $file: $error\n");
 }
 
 
@@ -345,10 +433,16 @@ sub uninstall {
     foreach (sort(keys(%$packlist))) {
 	chomp;
 	print "unlink $_\n" if $verbose;
-	forceunlink($_) unless $nonono;
+	forceunlink($_,'tryhard') unless $nonono;
     }
     print "unlink $fil\n" if $verbose;
-    forceunlink($fil) unless $nonono;
+    forceunlink($fil,'tryhard') unless $nonono;
+    if ($MUST_REBOOT) {
+        die "You must reboot to complete this installation.\n";
+    } elsif (defined $MUST_REBOOT) {
+        warn "Full installation will not be complete until next reboot.\n",
+             "However it is not necessary to reboot immediately.\n";
+    }
 }
 
 sub inc_uninstall {
@@ -357,7 +451,7 @@ sub inc_uninstall {
     my $file = (File::Spec->splitpath($filepath))[2];
     my %seen_dir = ();
 
-    my @PERL_ENV_LIB = split $Config{path_sep}, defined $ENV{'PERL5LIB'} 
+    my @PERL_ENV_LIB = split $Config{path_sep}, defined $ENV{'PERL5LIB'}
       ? $ENV{'PERL5LIB'} : $ENV{'PERLLIB'} || '';
 
     foreach $dir (@INC, @PERL_ENV_LIB, @Config{qw(archlibexp
@@ -384,7 +478,7 @@ sub inc_uninstall {
 	next unless $diff;
 	if ($nonono) {
 	    if ($verbose) {
-		$Inc_uninstall_warn_handler ||= new ExtUtils::Install::Warn;
+		$Inc_uninstall_warn_handler ||= ExtUtils::Install::Warn->new();
 		$libdir =~ s|^\./||s ; # That's just cosmetics, no need to port. It looks prettier.
 		$Inc_uninstall_warn_handler->add(
                                      File::Spec->catfile($libdir, $file),
@@ -394,7 +488,7 @@ sub inc_uninstall {
 	    # if not verbose, we just say nothing
 	} else {
 	    print "Unlinking $targetfile (shadowing?)\n";
-	    forceunlink($targetfile);
+	    forceunlink($targetfile,'tryhard');
 	}
     }
 }
@@ -453,7 +547,7 @@ sub pm_to_blib {
 	# the comparison check when there's no filter to be ran.
 	#    -- RAM, 03/01/2001
 
-	my $need_filtering = defined $pm_filter && length $pm_filter && 
+	my $need_filtering = defined $pm_filter && length $pm_filter &&
                              $from =~ /\.pm$/;
 
 	if (!$need_filtering && 0 == compare($from,$to)) {
@@ -461,6 +555,7 @@ sub pm_to_blib {
 	    next;
 	}
 	if (-f $to){
+	    # we wont try hard here. its too likely to mess things up.
 	    forceunlink($to);
 	} else {
 	    mkpath(dirname($to),0,0755);
@@ -474,7 +569,7 @@ sub pm_to_blib {
 	}
 	my($mode,$atime,$mtime) = (stat $from)[2,8,9];
 	utime($atime,$mtime+$Is_VMS,$to);
-	chmod(0444 | ( $mode & 0111 ? 0111 : 0 ),$to);
+	_chmod(0444 | ( $mode & 0111 ? 0111 : 0 ),$to);
 	next unless $from =~ /\.pm$/;
 	_autosplit($to,$autodir);
     }
@@ -529,7 +624,6 @@ sub DESTROY {
 
 =back
 
-
 =head1 ENVIRONMENT
 
 =over 4
@@ -544,7 +638,12 @@ Will be prepended to each install path.
 
 Original author lost in the mists of time.  Probably the same as Makemaker.
 
-Currently maintained by Michael G Schwern C<schwern@pobox.com>
+This experimental release is maintained by demerphq C<yves@cpan.org>
+
+Please direct any issues to the above email, the following concerns the
+production release only:
+
+Production release currently maintained by Michael G Schwern C<schwern@pobox.com>
 
 Send patches and ideas to C<makemaker@perl.org>.
 
@@ -553,10 +652,9 @@ generated Makefile along with your report.
 
 For more up-to-date information, see L<http://www.makemaker.org>.
 
-
 =head1 LICENSE
 
-This program is free software; you can redistribute it and/or 
+This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 
 See L<http://www.perl.com/perl/misc/Artistic.html>

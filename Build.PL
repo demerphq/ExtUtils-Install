@@ -5,7 +5,8 @@ use Module::Build;
 my $builder = Module::Build->new(
     module_name         => 'ExtUtils::Install',
     license             => 'perl',
-    dist_author         => 'Michael G Schwern <schwern@pobox.com>',
+    dist_name           => 'ex-ExtUtils-Install',
+    dist_author         => 'demerphq <yves@cpan.org>',
     dist_version_from   => 'lib/ExtUtils/Install.pm',
 
     build_requires => {

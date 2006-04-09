@@ -78,7 +78,7 @@ open(PACKLIST, 'install-test/packlist' );
 my %packlist = map { chomp;  ($_ => 1) } <PACKLIST>;
 close PACKLIST;
 
-# On case-insensitive filesystems (ie. VMS), the keys of the packlist might 
+# On case-insensitive filesystems (ie. VMS), the keys of the packlist might
 # be lowercase. :(
 my $native_dummy = File::Spec->catfile(qw(install-test lib perl Big Dummy.pm));
 is( keys %packlist, 1 );

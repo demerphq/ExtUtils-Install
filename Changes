@@ -7,3 +7,11 @@ Revision history for ExtUtils-Install
 
  - Changed the $VERSION of all modules to the same version number, a
    number higher than all $VERSIONs.
+
+1.36 2006-03-11 12:42
+
+- Extended Win32 support. Added ExtUtils::Install::MUST_REBOOT to
+handle such scenario when rebooting.
+
+- Released as ex-ExtUtils-Install by demerphq
+
