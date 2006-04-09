@@ -1,0 +1,9 @@
+Revision history for ExtUtils-Install
+
+1.35  Wed Feb  1 23:00:00 CST 2006
+
+ - First independent release; Extracted ExtUtils::Install,
+   ExtUtils::Installed, & ExtUtils::Packlist from MakeMaker.
+
+ - Changed the $VERSION of all modules to the same version number, a
+   number higher than all $VERSIONs.

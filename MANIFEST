@@ -1,0 +1,21 @@
+Build.PL
+Changes
+lib/ExtUtils/Install.pm
+lib/ExtUtils/Installed.pm
+lib/ExtUtils/Packlist.pm
+Makefile.PL
+MANIFEST
+META.yml			# Will be created by "make dist"
+README
+t/Install.t
+t/Installed.t
+t/lib/MakeMaker/Test/Setup/BFD.pm
+t/lib/MakeMaker/Test/Utils.pm
+t/lib/Test/Builder.pm
+t/lib/Test/Builder/Module.pm
+t/lib/Test/More.pm
+t/lib/Test/Simple.pm
+t/lib/TieOut.pm
+t/Packlist.t
+t/pod-coverage.t
+t/pod.t
