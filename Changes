@@ -53,7 +53,14 @@ merely warns that the file should be hand deleted.
 - Fixed install at reboot behaviour by making sure the temporar file is
 writable after install (normally files installed are readonly)
 
+1.3702 2006-03-19 16:54
 
+- Added support for skipping files during install based on a set of filter
+rules. If there is an INSTALL.SKIP in the current directory when doing an
+install then it is loaded, otherwise if there is a MANIFEST.SKIP then it is
+loaded. If neither exists then no filtration occurs.  The env variable
+EU_INSTALL_IGNORE_SKIP may be set to a true value to override this behaviour.
+This means that you can make .svn directories be ignored on install.
 
 
 

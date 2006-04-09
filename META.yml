@@ -1,6 +1,6 @@
 ---
 name: ex-ExtUtils-Install
-version: 1.3701
+version: 1.3702
 author:
   - 'demerphq <yves@cpan.org>'
 abstract: install files from here to there
@@ -28,7 +28,7 @@ recommends:
 provides:
   ExtUtils::Install:
     file: lib/ExtUtils/Install.pm
-    version: 1.3701
+    version: 1.3702
   ExtUtils::Install::Warn:
     file: lib/ExtUtils/Install.pm
   ExtUtils::Installed:

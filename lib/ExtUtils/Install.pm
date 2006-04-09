@@ -3,7 +3,7 @@ use 5.00503;
 use strict;
 
 use vars qw(@ISA @EXPORT $VERSION $MUST_REBOOT %Config);
-$VERSION = '1.3701'; # experimental release
+$VERSION = '1.3702'; # experimental release
 
 use Exporter;
 use Carp ();
@@ -252,7 +252,7 @@ sub _unlink_or_rename { #XXX OS-SPECIFIC
 =item B<install>
 
     install(\%from_to);
-    install(\%from_to, $verbose, $dont_execute, $uninstall_shadows);
+    install(\%from_to, $verbose, $dont_execute, $uninstall_shadows,$skip);
 
 Copies each directory tree of %from_to to its corresponding value
 preserving timestamps and permissions.
@@ -266,7 +266,8 @@ on AFS it is quite likely that people are installing to a different
 directory than the one where the files later appear.
 
 If $verbose is true, will print out each file removed.  Default is
-false.  This is "make install VERBINST=1"
+false.  This is "make install VERBINST=1". $verbose values going
+up to 5 show increasingly more diagnostics output.
 
 If $dont_execute is true it will only print what it was going to do
 without actually doing it.  Default is false.
@@ -274,12 +275,22 @@ without actually doing it.  Default is false.
 If $uninstall_shadows is true any differing versions throughout @INC
 will be uninstalled.  This is "make install UNINST=1"
 
+As of 1.3702 install() supports the use of a list of patterns to filter
+out files that shouldn't be installed. If $skip is omitted or undefined
+then install will try to read the list from the INSTALL.SKIP or if that
+isn't present the MANIFEST.SKIP file in the current directory. See
+L<ExtUtils::Manifest> to see how this file is structured.  If $skip is
+defined but false then no autodetection will occur, and no skip list
+used. If $skip is a reference to an array then it is assumed the array
+contains the list of patterns, otherwise $skip is assumed to hold the
+filename holding the list of patterns.
+
 =cut
 
 
 
 sub install { #XXX OS-SPECIFIC
-    my($from_to,$verbose,$nonono,$inc_uninstall) = @_;
+    my($from_to,$verbose,$nonono,$inc_uninstall,$skip) = @_;
     $verbose ||= 0;
     $nonono  ||= 0;
 
@@ -291,6 +302,41 @@ sub install { #XXX OS-SPECIFIC
     use File::Path qw(mkpath);
     use File::Compare qw(compare);
 
+    if (!defined $skip && ! $ENV{EU_INSTALL_IGNORE_SKIP} ) {
+        print "Looking for install skip list\n"
+            if $verbose>2;
+        for ( qw( INSTALL.SKIP MANIFEST.SKIP ) ) {
+            print "\tChecking for $_\n"
+                if $verbose>2;
+            if (-e $_) {
+                $skip=$_;
+                last;
+            }
+        }
+    }
+    if ($skip && !ref $skip) {
+        print "Reading skip patterns from '$skip'.\n";
+        if (open my $fh,$skip ) {
+            my @qr;
+            while (<$fh>) {
+                chomp;
+                next if /^\s*(?:#|$)/;
+                print "\tSkip pattern: $_\n" if $verbose>3;
+                push @qr,qr/$_/;
+            }
+            $skip=\@qr;
+        } else {
+            warn "Can't read skip file:'$skip':$!\n";
+        }
+    } elsif (ref $skip) {
+        print "Using array for skip list\n"
+            if $verbose>2;
+    } elsif ($verbose) {
+        print "No skip list found.\n"
+            if $verbose>1;
+    }
+    $skip||=[];
+    warn "Got @{[0+@$skip]} skip patterns.\n" if $verbose>3;
     my(%from_to) = %$from_to;
     my(%pack, $dir, $warn_permissions);
     my($packlist) = ExtUtils::Packlist->new();
@@ -348,14 +394,23 @@ sub install { #XXX OS-SPECIFIC
 
 	find(sub {
 	    my ($mode,$size,$atime,$mtime) = (stat)[2,7,8,9];
-	    return unless -f _;
 
+	    return if !-f _;
             my $origfile = $_;
+
 	    return if $origfile eq ".exists";
 	    my $targetdir  = File::Spec->catdir($targetroot, $File::Find::dir);
 	    my $targetfile = File::Spec->catfile($targetdir, $origfile);
             my $sourcedir  = File::Spec->catdir($source, $File::Find::dir);
             my $sourcefile = File::Spec->catfile($sourcedir, $origfile);
+
+            for my $pat (@$skip) {
+                if ( $sourcefile=~/$pat/ ) {
+                    print "Skipping $targetfile (filtered)\n"
+                        if $verbose>1;
+	            return;
+	        }
+	    }
 
             my $save_cwd = cwd;
             chdir $cwd;  # in case the target is relative
@@ -851,6 +906,11 @@ sub _invokant {
 =item B<PERL_INSTALL_ROOT>
 
 Will be prepended to each install path.
+
+=item B<EU_INSTALL_IGNORE_SKIP>
+
+Will prevent the automatic use of INSTALL.SKIP or MANIFEST.SKIP
+as the install skip file.
 
 =back
 
