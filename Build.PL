@@ -2,7 +2,24 @@ use strict;
 
 use Module::Build;
 
-my $Recommend_Win32API_File = ($^O eq 'MSWin32' || $^O eq 'cygwin');
+# On Win32 things work better if Win32API::File is available.
+# Activestate builds have it by default, but the core distro doesn't
+# so we recommend it on Win32.
+#
+# * BUT *
+#
+# We can't recommend it on the release system as it then goes in the YAML.pl
+# and then non-Win32 CPAN clients think they need it get upset when it fails
+# to build on their system.
+#
+# Until CPAN and Module::Build and the other infrastructure has a better
+# way to deal with this we assume UNIX when building a release.
+#
+# The pre-build stage will moan on Win32 anyway.
+
+my $Recommend_Win32API_File =  $ENV{USERNAME} ne 'demerphq'
+                            && ($^O eq 'MSWin32' || $^O eq 'cygwin');
+
 
 my $builder = Module::Build->new(
     module_name         => 'ExtUtils::Install',

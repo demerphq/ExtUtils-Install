@@ -1,24 +1,33 @@
 Revision history for ExtUtils-Install
 
-1.35  Wed Feb  1 23:00:00 CST 2006
+1.39 2006-04-14 18:53
 
- - First independent release; Extracted ExtUtils::Install,
-   ExtUtils::Installed, & ExtUtils::Packlist from MakeMaker.
+- Fixed problem with the META.yml file being produced from a Win32 point of view.
+IMO this is an error/failing in the design of the META.yml process. META.yml should
+be created on the client side not on the distributor side. Now produces a
+platform agnostic (ie UNIXy) META.yml.
 
- - Changed the $VERSION of all modules to the same version number, a
-   number higher than all $VERSIONs.
+- Reversed order of change file so newest entries go on top.
 
-1.36 2006-03-11 12:42
 
-- Extended Win32 support. Added ExtUtils::Install::MUST_REBOOT to
-handle such scenario when rebooting.
+1.38 2006-04-02 17:31
 
-- Released as ex-ExtUtils-Install by demerphq
+- Removed MANIFEST.SKIP support (INSTALL.SKIP still supported), and
+added support for providing a fallback skip file by using
+ENV{EU_INSTALL_SITE_SKIP} as a fallback if there is not a distribution
+specific skip file.
 
-1.37 2006-03-12 23:20
+- Released under the ExtUtils-Install-1.38 Name
 
-- Refactored reboot support. Integrated changes from Randy Sims
-in p5p message 4413F4E9.7090802@thepierianspring.org
+
+1.3702 2006-03-19 16:54
+
+- Added support for skipping files during install based on a set of filter
+rules. If there is an INSTALL.SKIP in the current directory when doing an
+install then it is loaded, otherwise if there is a MANIFEST.SKIP then it is
+loaded. If neither exists then no filtration occurs.  The env variable
+EU_INSTALL_IGNORE_SKIP may be set to a true value to override this behaviour.
+This means that you can make .svn directories be ignored on install.
 
 1.3701 2006-03-13 20:00
 
@@ -53,22 +62,23 @@ merely warns that the file should be hand deleted.
 - Fixed install at reboot behaviour by making sure the temporar file is
 writable after install (normally files installed are readonly)
 
-1.3702 2006-03-19 16:54
+1.37 2006-03-12 23:20
 
-- Added support for skipping files during install based on a set of filter
-rules. If there is an INSTALL.SKIP in the current directory when doing an
-install then it is loaded, otherwise if there is a MANIFEST.SKIP then it is
-loaded. If neither exists then no filtration occurs.  The env variable
-EU_INSTALL_IGNORE_SKIP may be set to a true value to override this behaviour.
-This means that you can make .svn directories be ignored on install.
-
-1.38 2006-04-02 17:31
-
-- Removed MANIFEST.SKIP support (INSTALL.SKIP still supported), and
-added support for providing a fallback skip file by using
-ENV{EU_INSTALL_SITE_SKIP} as a fallback if there is not a distribution
-specific skip file.
-
-- Released under the ExtUtils-Install-1.38 Name
+- Refactored reboot support. Integrated changes from Randy Sims
+in p5p message 4413F4E9.7090802@thepierianspring.org
 
 
+1.36 2006-03-11 12:42
+
+- Extended Win32 support. Added ExtUtils::Install::MUST_REBOOT to
+handle such scenario when rebooting.
+
+- Released as ex-ExtUtils-Install by demerphq
+
+1.35  Wed Feb  1 23:00:00 CST 2006
+
+ - First independent release; Extracted ExtUtils::Install,
+   ExtUtils::Installed, & ExtUtils::Packlist from MakeMaker.
+
+ - Changed the $VERSION of all modules to the same version number, a
+   number higher than all $VERSIONs.
