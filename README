@@ -1,15 +1,7 @@
 ExtUtils-Install
 
-The README is used to introduce the module and provide instructions on
-how to install the module, any machine dependencies it may have (for
-example C compilers and installed libraries) and any other information
-that should be provided before the module is installed.
-
-A README file is required for CPAN modules since CPAN extracts the README
-file from a module distribution so that people browsing the archive
-can use it get an idea of the modules uses. It is usually a good idea
-to provide version information here so that people can decide whether
-fixes for the module are worth downloading.
+Install perl modules into the source tree. Used by ExtUtils::MakeMaker and
+Module::Build.
 
 INSTALLATION
 
@@ -21,17 +13,21 @@ To install this module, run the following commands:
     make install
 
 
-Alternatively, to install with Module::Build, you can use the following commands:
+Alternatively, to install with Module::Build, you can use the following
+commands:
 
     perl Build.PL
     ./Build
     ./Build test
     ./Build install
 
+Note that using Module::Build may make it more difficult to install on some
+platforms, if a failure occurs try to use the Makefile.PL approach instead.
 
 SUPPORT AND DOCUMENTATION
 
-After installing, you can find documentation for this module with the perldoc command.
+After installing, you can find documentation for this module with the
+perldoc command.
 
     perldoc ExtUtils::Install
 

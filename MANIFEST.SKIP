@@ -9,15 +9,16 @@
 # Avoid Makemaker generated and utility files.
 \bMANIFEST\.bak
 \bMakefile$
-\bblib/
+\bblib\b
 \bMakeMaker-\d
 \bpm_to_blib\.ts$
 \bpm_to_blib$
+\.gz$
 \bblibdirs\.ts$         # 6.18 through 6.25 generated this
 
 # Avoid Module::Build generated and utility files.
 \bBuild$
-\b_build/
+\b_build\b
 
 # Avoid temp and backup files.
 ~$

@@ -1,6 +1,8 @@
 use 5.00503;
 use strict;
 
+use lib qw(lib); # use ourself if possible not the existing stuff.
+
 # On Win32 things work better if Win32API::File is available.
 # Activestate builds have it by default, but the core distro doesn't
 # so we recommend it on Win32.
@@ -62,6 +64,28 @@ WriteMakefile(
 #       'Test::More' => 0, # This is bundled, but not in @INC for prereqs
     },
 
+    INSTALLDIRS     => 'perl', # install into site not into lib.
+    NO_META => 1,
+
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'ExtUtils-Install-*' },
 );
+
+{
+    package MY;
+
+    my($lib);
+    BEGIN {
+        $lib  = File::Spec->canonpath('lib/');
+    }
+
+    # Make sure PERLRUN uses the MakeMaker about to be installed
+    # and not the currently installed one.
+    sub init_PERL {
+        my($self) = shift;
+        $self->SUPER::init_PERL;
+        $self->{ABSPERLRUN} .= qq{ "-I$lib"};
+        $self->{PERLRUN} .= qq{ "-I$lib"};
+        $self->{FULLPERLRUN} .= qq{ "-I$lib"};
+    }
+}

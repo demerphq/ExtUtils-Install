@@ -3,7 +3,7 @@ use 5.00503;
 use strict;
 
 use vars qw(@ISA @EXPORT $VERSION $MUST_REBOOT %Config);
-$VERSION = '1.39_01';
+$VERSION = '1.40';
 $VERSION = eval $VERSION;
 
 use AutoSplit;
@@ -37,45 +37,6 @@ ExtUtils::Install - install files from here to there
 
   pm_to_blib({ 'lib/Foo/Bar.pm' => 'blib/lib/Foo/Bar.pm' });
 
-=cut
-
-my $Is_VMS     = $^O eq 'VMS';
-my $Is_MacPerl = $^O eq 'MacOS';
-my $Is_Win32   = $^O eq 'MSWin32';
-my $Is_cygwin  = $^O eq 'cygwin';
-my $CanMoveAtBoot = ($Is_Win32 || $Is_cygwin);
-
-# *note* CanMoveAtBoot is only incidentally the same condition as below
-# this needs not hold true in the future.
-my $Has_Win32API_File = ($Is_Win32 || $Is_cygwin)
-    ? (eval {require Win32API::File; 1} || 0)
-    : 0;
-
-
-my $Inc_uninstall_warn_handler;
-
-# install relative to here
-
-my $INSTALL_ROOT = $ENV{PERL_INSTALL_ROOT};
-
-my $Curdir = File::Spec->curdir;
-my $Updir  = File::Spec->updir;
-
-sub _estr(@) {
-    return join "\n",'!' x 72,@_,'!' x 72,'';
-}
-{my %warned;
-sub warnonce(@) {
-    my $first=shift;
-    my $msg=_estr "WARNING: $first",@_;
-    warn $msg unless $warned{$msg}++;
-}}
-sub choke(@) {
-    my $first=shift;
-    my $msg=_estr "ERROR: $first",@_;
-    Carp::croak($msg);
-}
-
 =head1 DESCRIPTION
 
 Handles the installing and uninstalling of perl modules, scripts, man
@@ -108,9 +69,56 @@ ocurred, but should not impact later operations.
 
 Wrapper to chmod() for debugging and error trapping.
 
+=item _warnonce(@)
+
+Warns about something only once.
+
+=item _choke(@)
+
+Dies with a special message.
+
 =end _private
 
 =cut
+
+my $Is_VMS     = $^O eq 'VMS';
+my $Is_MacPerl = $^O eq 'MacOS';
+my $Is_Win32   = $^O eq 'MSWin32';
+my $Is_cygwin  = $^O eq 'cygwin';
+my $CanMoveAtBoot = ($Is_Win32 || $Is_cygwin);
+
+# *note* CanMoveAtBoot is only incidentally the same condition as below
+# this needs not hold true in the future.
+my $Has_Win32API_File = ($Is_Win32 || $Is_cygwin)
+    ? (eval {require Win32API::File; 1} || 0)
+    : 0;
+
+
+my $Inc_uninstall_warn_handler;
+
+# install relative to here
+
+my $INSTALL_ROOT = $ENV{PERL_INSTALL_ROOT};
+
+my $Curdir = File::Spec->curdir;
+my $Updir  = File::Spec->updir;
+
+sub _estr(@) {
+    return join "\n",'!' x 72,@_,'!' x 72,'';
+}
+
+{my %warned;
+sub _warnonce(@) {
+    my $first=shift;
+    my $msg=_estr "WARNING: $first",@_;
+    warn $msg unless $warned{$msg}++;
+}}
+
+sub _choke(@) {
+    my $first=shift;
+    my $msg=_estr "ERROR: $first",@_;
+    Carp::croak($msg);
+}
 
 
 sub _chmod($$;$) {
@@ -120,7 +128,7 @@ sub _chmod($$;$) {
         print "chmod($mode, $item)\n" if $verbose > 1;
     } else {
         my $err="$!";
-        warnonce "WARNING: Failed chmod($mode, $item): $err\n"
+        _warnonce "WARNING: Failed chmod($mode, $item): $err\n"
             if -e $item;
     }
 }
@@ -166,7 +174,7 @@ sub _move_file_at_boot { #XXX OS-SPECIFIC
             "to be scheduled during reboot. Or try to perform the operation by",
             "hand yourself. (You may need to close other perl processes first)"
         );
-        if ( $moan ) { warnonce(@msg) } else { choke(@msg) }
+        if ( $moan ) { _warnonce(@msg) } else { _choke(@msg) }
         return 0;
     }
     my $opts= Win32API::File::MOVEFILE_DELAY_UNTIL_REBOOT();
@@ -185,7 +193,7 @@ sub _move_file_at_boot { #XXX OS-SPECIFIC
             "You may try to perform the operation by hand yourself. ",
             "(You may need to close other perl processes first).",
         );
-        if ( $moan ) { warnonce(@msg) } else { choke(@msg) }
+        if ( $moan ) { _warnonce(@msg) } else { _choke(@msg) }
     }
     return 0;
 }
@@ -234,7 +242,7 @@ sub _unlink_or_rename { #XXX OS-SPECIFIC
         and return $file;
     my $error="$!";
 
-    choke("Cannot unlink '$file': $!")
+    _choke("Cannot unlink '$file': $!")
           unless $CanMoveAtBoot && $tryhard;
 
     my $tmp= "AAA";
@@ -253,12 +261,12 @@ sub _unlink_or_rename { #XXX OS-SPECIFIC
         _move_file_at_boot( $tmp, [], $installing );
 	return $file;
     } elsif ( $installing ) {
-        warnonce("Rename failed: $!. Scheduling '$tmp'\nfor".
+        _warnonce("Rename failed: $!. Scheduling '$tmp'\nfor".
              " installation as '$file' at reboot.\n");
         _move_file_at_boot( $tmp, $file );
         return $tmp;
     } else {
-        choke("Rename failed:$!", "Cannot procede.");
+        _choke("Rename failed:$!", "Cannot procede.");
     }
 
 }
@@ -468,7 +476,7 @@ sub _mkpath {
     }
     if (!$fake) {
         if ( ! eval { File::Path::mkpath($dir,$show,$mode); 1 } ) {
-            choke("Can't create '$dir'","$@");
+            _choke("Can't create '$dir'","$@");
         }
 
     }
@@ -480,9 +488,9 @@ sub _mkpath {
                   : "Unknown Error"
         );
         if ($fake) {
-            warnonce @msg;
+            _warnonce @msg;
         } else {
-            choke @msg;
+            _choke @msg;
         }
     } elsif ($show and $fake) {
         print "$_\n" for @make;
@@ -530,7 +538,7 @@ sub _chdir {
         $ret= cwd;
     }
     chdir $dir
-        or choke("Couldn't chdir to '$dir': $!");
+        or _choke("Couldn't chdir to '$dir': $!");
     return $ret;
 }
 
@@ -594,8 +602,8 @@ sub install { #XXX OS-SPECIFIC
             print "Files found in $blib_arch: installing files in $blib_lib into architecture dependent library tree\n";
 	}
 
+        next unless -d $source;
         _chdir($source);
-            #or next;
 
 	find(sub {
 	    my ($mode,$size,$atime,$mtime) = (stat)[2,7,8,9];

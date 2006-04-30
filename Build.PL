@@ -27,6 +27,7 @@ my $builder = Module::Build->new(
     dist_name           => 'ExtUtils-Install',
     dist_author         => 'demerphq <yves@cpan.org>',
     dist_version_from   => 'lib/ExtUtils/Install.pm',
+    dynamic_config      => 1,
 
     build_requires => {
 #       'Test::More' => 0, # This is bundled, but not in @INC for prereqs
