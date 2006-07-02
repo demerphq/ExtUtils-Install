@@ -1,5 +1,10 @@
 Revision history for ExtUtils-Install
 
+1.41 2006-07-02 16:09
+
+Integrated ExtUtils::Packlist changes from Nicholas Clark to allow for 
+relocatable perls. Bumped version numbers on all files.
+
 1.40 2006-04-30 15:04
 
 Enhanced errorcatching and reporting. Fixed a problem with the INSTALL.SKIP
