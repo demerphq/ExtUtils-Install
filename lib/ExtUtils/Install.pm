@@ -431,11 +431,12 @@ sub _can_write_dir {
     return
         unless defined $dir and length $dir;
 
-    my @dirs=File::Spec->splitdir(File::Spec->rel2abs($dir));
+    my ($vol, $dirs, $file) = File::Spec->splitpath(File::Spec->rel2abs($dir));
+    my @dirs = File::Spec->splitdir($dirs);
     my $path='';
     my @make;
     while (@dirs) {
-        $dir=File::Spec->catdir(@dirs);
+        $dir=File::Spec->catpath($vol, @dirs, '');
         next if ( $dir eq $path );
         if ( ! -e $dir ) {
             unshift @make,$dir;
