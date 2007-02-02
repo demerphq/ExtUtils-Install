@@ -16,7 +16,7 @@ my $DOSISH = ($^O =~ /^(MSWin\d\d|os2|dos|mint)$/);
 require VMS::Filespec if $Is_VMS;
 
 use vars qw($VERSION);
-$VERSION = '1.41';
+$VERSION = '1.42';
 $VERSION = eval $VERSION;
 
 sub _is_prefix {
@@ -44,8 +44,9 @@ sub _is_prefix {
 
 sub _is_doc {
     my ($self, $path) = @_;
-    my $man1dir = $Config{man1direxp};
-    my $man3dir = $Config{man3direxp};
+
+    my $man1dir = $self->{':private:'}{Config}{man1direxp};
+    my $man3dir = $self->{':private:'}{Config}{man3direxp};
     return(($man1dir && $self->_is_prefix($path, $man1dir))
            ||
            ($man3dir && $self->_is_prefix($path, $man3dir))
@@ -59,7 +60,7 @@ sub _is_type {
     return($self->_is_doc($path)) if $type eq "doc";
 
     if ($type eq "prog") {
-        return($self->_is_prefix($path, $Config{prefix} || $Config{prefixexp})
+        return($self->_is_prefix($path, $self->{':private:'}{Config}{prefix} || $self->{':private:'}{Config}{prefixexp})
                &&
                !($self->_is_doc($path))
                ? 1 : 0);
@@ -78,12 +79,43 @@ sub _is_under {
 }
 
 sub new {
-    my ($class) = @_;
+    my ($class) = shift(@_);
     $class = ref($class) || $class;
+
+    my %args = @_;
+
     my $self = {};
 
-    my $archlib = $Config{archlibexp};
-    my $sitearch = $Config{sitearchexp};
+    if (defined $args{config_override}) {
+        if (ref($args{config_override}) eq 'HASH') {
+            $self->{':private:'}{Config} = { %{$args{config_override}} };
+        }
+        else {
+            Carp::croak(
+            "The 'config_override' parameter must be a hash reference."
+            );
+        }
+    }
+    else {
+        $self->{':private:'}{Config} = \%Config;
+    }
+    
+    if (defined $args{inc_override}) {
+        if (ref($args{inc_override}) eq 'ARRAY') {
+            $self->{':private:'}{INC} = [ @{$args{inc_override}} ];
+        }
+        else {
+            Carp::croak(
+            "The 'inc_override' parameter must be an array reference."
+            );
+        }
+    }
+    else {
+        $self->{':private:'}{INC} = \@INC;
+    }
+    
+    my $archlib = $self->{':private:'}{Config}{archlibexp};
+    my $sitearch = $self->{':private:'}{Config}{sitearchexp};
 
     # File::Find does not know how to deal with VMS filepaths.
     if( $Is_VMS ) {
@@ -99,7 +131,7 @@ sub new {
     # Read the core packlist
     $self->{Perl}{packlist} =
       ExtUtils::Packlist->new( File::Spec->catfile($archlib, '.packlist') );
-    $self->{Perl}{version} = $Config{version};
+    $self->{Perl}{version} = $self->{':private:'}{Config}{version};
 
     # Read the module packlists
     my $sub = sub {
@@ -116,7 +148,7 @@ sub new {
 
         # Find the top-level module file in @INC
         $self->{$module}{version} = '';
-        foreach my $dir (@INC) {
+        foreach my $dir (@{$self->{':private:'}{INC}}) {
             my $p = File::Spec->catfile($dir, $modfile);
             if (-r $p) {
                 $module = _module_name($p, $module) if $Is_VMS;
@@ -132,7 +164,13 @@ sub new {
           ExtUtils::Packlist->new($File::Find::name);
     };
 
+    my $perl5lib = $ENV{PERL5LIB};
+
     my(@dirs) = grep { -e } ($archlib, $sitearch);
+    if ($perl5lib) {
+        push @dirs, grep { -e } split(/\Q$Config{path_sep}\E/, $perl5lib);
+    };
+
     find($sub, @dirs) if @dirs;
 
     return(bless($self, $class));
@@ -172,7 +210,9 @@ sub modules {
     my ($self) = @_;
 
     # Bug/feature of sort in scalar context requires this.
-    return wantarray ? sort keys %$self : keys %$self;
+    return wantarray
+        ? sort grep { not /^:private:$/ } keys %$self
+        : grep { not /^:private:$/ } keys %$self;
 }
 
 sub files {
@@ -277,8 +317,28 @@ described below.
 
 =item new()
 
-This takes no parameters, and searches for all the installed .packlists on the
-system.  The packlists are read using the ExtUtils::packlist module.
+This takes optional named parameters. Without parameters, this
+searches for all the installed .packlists on the system using
+information from C<%Config::Config> and the default module search
+paths C<@INC>. The packlists are read using the
+L<ExtUtils::Packlist> module.
+
+If the named parameter C<config_override> is specified,
+it should be a reference to a hash which contains all information
+usually found in C<%Config::Config>. For example, you can obtain
+the configuration information for a separate perl installation and
+pass that in.
+
+    my $yoda_cfg  = get_fake_config('yoda');
+    my $yoda_inst = ExtUtils::Installed->new(config_override=>$yoda_config);
+
+Similarly, the parameter C<inc_override> may be a reference to an
+array which is used in place of the default module search paths
+from C<@INC>.
+
+    use Config;
+    my @dirs=split(/\Q$Config{path_sep}\E/, $ENV{PERL5LIB});
+    my $extralibs = ExtUtils::Installed->new(inc_override=>\@dirs);
 
 =item modules()
 
