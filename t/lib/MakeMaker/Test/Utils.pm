@@ -251,7 +251,7 @@ would expect to see on a screen.
 sub run {
     my $cmd = shift;
 
-    require ExtUtils::MM;
+    require ExtUtils::MakeMaker;
 
     # Unix can handle 2>&1 and OS/2 from 5.005_54 up.
     # This makes our failure diagnostics nicer to read.

@@ -153,7 +153,6 @@ sub new {
             if (-r $p) {
                 $module = _module_name($p, $module) if $Is_VMS;
 
-                require ExtUtils::MM;
                 $self->{$module}{version} = MM->parse_version($p);
                 last;
             }

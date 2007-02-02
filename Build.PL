@@ -1,6 +1,6 @@
 use strict;
-
 use Module::Build;
+use lib qw(lib);
 
 # On Win32 things work better if Win32API::File is available.
 # Activestate builds have it by default, but the core distro doesn't
@@ -29,6 +29,8 @@ my $builder = Module::Build->new(
     dist_version_from   => 'lib/ExtUtils/Install.pm',
     dynamic_config      => 1,
 
+    installdirs         => 'core',
+
     build_requires => {
 #       'Test::More' => 0, # This is bundled, but not in @INC for prereqs
     },
@@ -55,7 +57,6 @@ my $builder = Module::Build->new(
         ($^O eq 'VMS' ? ('VMS::Filespec' => 0) : ()),
 
         'ExtUtils::MakeMaker' => 0,
-        'ExtUtils::MM' => 0, # for parse_version; rework it ???
     },
 
     recommends => {
