@@ -3,7 +3,7 @@ use 5.00503;
 use strict;
 
 use vars qw(@ISA @EXPORT $VERSION $MUST_REBOOT %Config);
-$VERSION = '1.42';
+$VERSION = '1.41_01';
 $VERSION = eval $VERSION;
 
 use AutoSplit;
@@ -665,7 +665,7 @@ sub install { #XXX OS-SPECIFIC
 
 	    if ( defined $inc_uninstall ) {
 		inc_uninstall($sourcefile,$File::Find::dir,$verbose,
-                              $inc_uninstall ? 0 : 1,
+                              $nonono,
                               $realtarget ne $targetfile ? $realtarget : "");
 	    }
 
@@ -683,7 +683,7 @@ sub install { #XXX OS-SPECIFIC
     if ($pack{'write'}) {
 	$dir = install_rooted_dir(dirname($pack{'write'}));
 	_mkpath( $dir, 0, 0755, $verbose, $nonono );
-	print "Writing $pack{'write'}\n";
+	print "Writing $pack{'write'}\n" if $verbose;
 	$packlist->write(install_rooted_file($pack{'write'})) unless $nonono;
     }
 
@@ -928,7 +928,7 @@ sub inc_uninstall {
 	    }
 	    # if not verbose, we just say nothing
 	} else {
-	    print "Unlinking $targetfile (shadowing?)\n";
+	    print "Unlinking $targetfile (shadowing?)\n" if $verbose;
 	    forceunlink($targetfile,'tryhard');
 	}
     }

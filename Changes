@@ -1,5 +1,22 @@
 Revision history for ExtUtils-Install
 
+1.41_01 2007-02-02 21:03
+
+Integrated changes from 
+
+1. Steffen Mueller: make ExtUtils::Installed respect PERL5LIB and allow
+overriding the current config and inc with something else.
+
+2. Michael Schwern (RT#21949, RT#21948): Fix use lib and installdirs
+and other EU::MakeMaker related changes.
+
+3. ActiveState (RT#5903): Reduce install verbosity.
+
+4. Craig Berry (RT#22157): Fix VMS related install failure.
+
+5. Ken Williams (RT#16225): Make fake uninstall actually fake.
+
+
 1.41 2006-07-02 16:09
 
 Integrated ExtUtils::Packlist changes from Nicholas Clark to allow for 
