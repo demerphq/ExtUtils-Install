@@ -3,7 +3,7 @@ use 5.00503;
 use strict;
 
 use vars qw(@ISA @EXPORT $VERSION $MUST_REBOOT %Config);
-$VERSION = '1.41_01';
+$VERSION = '1.41_02';
 $VERSION = eval $VERSION;
 
 use AutoSplit;
@@ -436,7 +436,8 @@ sub _can_write_dir {
     my $path='';
     my @make;
     while (@dirs) {
-        $dir=File::Spec->catpath($vol, @dirs, '');
+        $dir = File::Spec->catdir(@dirs);
+        $dir = File::Spec->catpath($vol,$dir,"");
         next if ( $dir eq $path );
         if ( ! -e $dir ) {
             unshift @make,$dir;
