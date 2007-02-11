@@ -21,7 +21,7 @@ use File::Path;
 use File::Basename;
 use File::Spec;
 
-use Test::More tests => 58;
+use Test::More tests => 63;
 
 BEGIN { use_ok( 'ExtUtils::Installed' ) }
 
@@ -173,6 +173,24 @@ my $fake_mod_dir = File::Spec->catdir(cwd(), 'auto', 'FakeMod');
         'new(config_override => HASH) overrides %Config' );
 
     ok( exists $realei->{FakeMod}, 'new() with overrides should find modules with .packlists');
+    isa_ok( $realei->{FakeMod}{packlist}, 'ExtUtils::Packlist' );
+    is( $realei->{FakeMod}{version}, '1.1.1',
+	'... should find version in modules' );
+}
+
+# Check if extra_libs works.
+{
+    my $realei = ExtUtils::Installed->new(
+        'extra_libs' => [ cwd() ],
+    );
+    isa_ok( $realei, 'ExtUtils::Installed' );
+    isa_ok( $realei->{Perl}{packlist}, 'ExtUtils::Packlist' );
+    ok( exists $realei->{FakeMod}, 
+        'new() with extra_libs should find modules with .packlists');
+    
+    #{ use Data::Dumper; local $realei->{':private:'}{Config};
+    #  warn Dumper($realei); }
+    
     isa_ok( $realei->{FakeMod}{packlist}, 'ExtUtils::Packlist' );
     is( $realei->{FakeMod}{version}, '1.1.1',
 	'... should find version in modules' );
