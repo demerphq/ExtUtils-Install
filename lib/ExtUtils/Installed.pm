@@ -112,8 +112,11 @@ sub new {
             $self->{':private:'}{$key} = $val;
         }
     }
-    push @{$self->{':private:'}{INC}},@{$self->{':private:'}{EXTRA}};
-        
+    {
+        my %dupe;
+        @{$self->{':private:'}{INC}} = grep { -e $_ && !$dupe{$_}++ }
+            @{$self->{':private:'}{INC}}, @{$self->{':private:'}{EXTRA}};        
+    }                
     my $perl5lib = defined $ENV{PERL5LIB} ? $ENV{PERL5LIB} : "";
 
     my @dirs = ( $self->{':private:'}{Config}{archlibexp},
@@ -124,7 +127,8 @@ sub new {
     
     # File::Find does not know how to deal with VMS filepaths.
     if( $Is_VMS ) {
-        $_ = VMS::Filespec::unixify($_) for @dirs;
+        $_ = VMS::Filespec::unixify($_) 
+            for @dirs;
     }
 
     if ($DOSISH) {

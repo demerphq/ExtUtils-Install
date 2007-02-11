@@ -1,5 +1,12 @@
 Revision history for ExtUtils-Install
 
+1.41_03 2007-02-11 15:13
+
+Add an extra_libs parameter to ExtUtils::Installed->new() which allows 
+one to specify additional libs to search for installed modules.
+
+Additional code cleanup and tweaks.
+
 1.41_02 2007-02-03 21:10
 
 Fix bug in _can_write_file().
