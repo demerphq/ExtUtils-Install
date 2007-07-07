@@ -1,5 +1,15 @@
 Revision history for ExtUtils-Install
 
+1.41_04 2007-07-07 16:52:40
+
+Reorganize how things work in Install so that we don't try to create
+directories which exist but are not writable to us when they contain
+files which we want to install which are writable by us.
+http://rt.cpan.org/Public/Bug/Display.html?id=25627
+
+Also fix a VMS issue as recommended by Craig Berry.
+http://rt.cpan.org/Public/Bug/Display.html?id=22157
+
 1.41_03 2007-02-11 15:13
 
 Add an extra_libs parameter to ExtUtils::Installed->new() which allows 
