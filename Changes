@@ -1,5 +1,9 @@
 Revision history for ExtUtils-Install
 
+1.42 2007-07-20 22:43:04
+
+This is just 1.41_04 as a production release.
+
 1.41_04 2007-07-07 16:52:40
 
 Reorganize how things work in Install so that we don't try to create
