@@ -687,7 +687,7 @@ sub install { #XXX OS-SPECIFIC
     if ($pack{'write'}) {
         $dir = install_rooted_dir(dirname($pack{'write'}));
         _mkpath( $dir, 0, 0755, $verbose, $nonono );
-        print "Writing $pack{'write'}\n" if $verbose;
+        print "Writing $pack{'write'}\n";
         $packlist->write(install_rooted_file($pack{'write'})) unless $nonono;
     }
 

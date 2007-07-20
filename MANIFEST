@@ -8,6 +8,7 @@ MANIFEST
 MANIFEST.SKIP
 INSTALL.SKIP
 README
+t/basic.t
 t/Install.t
 t/Installed.t
 t/lib/MakeMaker/Test/Setup/BFD.pm
