@@ -3,6 +3,10 @@
 # This test puts MakeMaker through the paces of a basic perl module
 # build, test and installation of the Big::Fat::Dummy module.
 
+# **** NOTE - This is a stripped down version of EU::MM's t/basic.t ****
+# **** Do NOT copy this file into the Perl source tree! ****
+
+
 BEGIN {
     if( $ENV{PERL_CORE} ) {
         chdir 't' if -d 't';
@@ -16,7 +20,7 @@ BEGIN {
 use strict;
 use Config;
 
-use Test::More tests => 83;
+use Test::More tests => 70;
 use MakeMaker::Test::Utils;
 use MakeMaker::Test::Setup::BFD;
 use File::Find;
@@ -84,36 +88,6 @@ my $make = make_run();
 }
 
 END { unlink 'MANIFEST'; }
-
-
-my $ppd_out = run("$make ppd");
-is( $?, 0,                      '  exited normally' ) || diag $ppd_out;
-ok( open(PPD, 'Big-Dummy.ppd'), '  .ppd file generated' );
-my $ppd_html;
-{ local $/; $ppd_html = <PPD> }
-close PPD;
-like( $ppd_html, qr{^<SOFTPKG NAME="Big-Dummy" VERSION="0,01,0,0">}m, 
-                                                           '  <SOFTPKG>' );
-like( $ppd_html, qr{^\s*<TITLE>Big-Dummy</TITLE>}m,        '  <TITLE>'   );
-like( $ppd_html, qr{^\s*<ABSTRACT>Try "our" hot dog's</ABSTRACT>}m,         
-                                                           '  <ABSTRACT>');
-like( $ppd_html, 
-      qr{^\s*<AUTHOR>Michael G Schwern &lt;schwern\@pobox.com&gt;</AUTHOR>}m,
-                                                           '  <AUTHOR>'  );
-like( $ppd_html, qr{^\s*<IMPLEMENTATION>}m,          '  <IMPLEMENTATION>');
-like( $ppd_html, qr{^\s*<DEPENDENCY NAME="strict" VERSION="0,0,0,0" />}m,
-                                                           '  <DEPENDENCY>' );
-like( $ppd_html, qr{^\s*<OS NAME="$Config{osname}" />}m,
-                                                           '  <OS>'      );
-my $archname = $Config{archname};
-$archname .= "-". substr($Config{version},0,3) if $] >= 5.008;
-like( $ppd_html, qr{^\s*<ARCHITECTURE NAME="$archname" />}m,
-                                                           '  <ARCHITECTURE>');
-like( $ppd_html, qr{^\s*<CODEBASE HREF="" />}m,            '  <CODEBASE>');
-like( $ppd_html, qr{^\s*</IMPLEMENTATION>}m,           '  </IMPLEMENTATION>');
-like( $ppd_html, qr{^\s*</SOFTPKG>}m,                      '  </SOFTPKG>');
-END { unlink 'Big-Dummy.ppd' }
-
 
 my $test_out = run("$make test");
 like( $test_out, qr/All tests successful/, 'make test' );

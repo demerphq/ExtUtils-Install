@@ -1,5 +1,14 @@
 Revision history for ExtUtils-Install
 
+1.43 2007-07-21 00:09:24
+
+Turns out some recent version, I haven't figured out which, causes
+ExtUtils::MakeMaker to fail test. The failure is actually bogus, EUMM
+is testing for output that we stopped producing except under verbose,
+however it is a pain, so this release fixes the problem. It also adds
+a new test file, a stripped down version of ExtUtils::MakeMakers 
+t/basic.t.
+
 1.42 2007-07-20 22:43:04
 
 This is just 1.41_04 as a production release.
