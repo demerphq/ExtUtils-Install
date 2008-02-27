@@ -21,3 +21,4 @@ t/lib/TieOut.pm
 t/Packlist.t
 t/pod-coverage.t
 t/pod.t
+META.yml
