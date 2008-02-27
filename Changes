@@ -1,5 +1,11 @@
 Revision history for ExtUtils-Install
 
+1.45 2008-02-27 13:55:27
+
+Fix rt.cpan.org #32813, use catpath() to attach volume name
+to dirs in _can_write_dir() when necessary to avoid cygwin
+builds doing a hostname lookup.
+
 1.44 2007-09-09 23:12:25
 
 by Schwern
