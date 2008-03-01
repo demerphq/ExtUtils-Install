@@ -20,7 +20,7 @@ BEGIN {
 use strict;
 use Config;
 
-use Test::More tests => 70;
+use Test::More tests => 55;
 use MakeMaker::Test::Utils;
 use MakeMaker::Test::Setup::BFD;
 use File::Find;
@@ -206,71 +206,4 @@ SKIP: {
     ok( $files{'.packlist'},    '  packlist created'   );
     ok( $files{'perllocal.pod'},'  perllocal.pod created' );
     rmtree('other');
-}
-
-
-my $dist_test_out = run("$make disttest");
-is( $?, 0, 'disttest' ) || diag($dist_test_out);
-
-# Test META.yml generation
-use ExtUtils::Manifest qw(maniread);
-
-my $distdir  = 'Big-Dummy-0.01';
-$distdir =~ s/\./_/g if $Is_VMS;
-my $meta_yml = "$distdir/META.yml";
-
-ok( !-f 'META.yml',  'META.yml not written to source dir' );
-ok( -f $meta_yml,    'META.yml written to dist dir' );
-ok( !-e "META_new.yml", 'temp META.yml file not left around' );
-
-ok open META, $meta_yml or diag $!;
-my @meta = <META>;
-like $meta[-1], '/\n$/', "META.yml ends with a newline";
-ok close META;
-
-my $manifest = maniread("$distdir/MANIFEST");
-# VMS is non-case preserving, so we can't know what the MANIFEST will
-# look like. :(
-_normalize($manifest);
-is( $manifest->{'meta.yml'}, 'Module meta-data (added by MakeMaker)' );
-
-
-# Test NO_META META.yml suppression
-unlink $meta_yml;
-ok( !-f $meta_yml,   'META.yml deleted' );
-@mpl_out = run(qq{$perl Makefile.PL "NO_META=1"});
-cmp_ok( $?, '==', 0, 'Makefile.PL exited with zero' ) || diag(@mpl_out);
-my $distdir_out = run("$make distdir");
-is( $?, 0, 'distdir' ) || diag($distdir_out);
-ok( !-f $meta_yml,   'META.yml generation suppressed by NO_META' );
-
-
-# Make sure init_dirscan doesn't go into the distdir
-@mpl_out = run(qq{$perl Makefile.PL "PREFIX=../dummy-install"});
-
-cmp_ok( $?, '==', 0, 'Makefile.PL exited with zero' ) || diag(@mpl_out);
-
-ok( grep(/^Writing $makefile for Big::Dummy/, @mpl_out) == 1,
-                                'init_dirscan skipped distdir') || 
-  diag(@mpl_out);
-
-# I know we'll get ignored errors from make here, that's ok.
-# Send STDERR off to oblivion.
-open(SAVERR, ">&STDERR") or die $!;
-open(STDERR, ">".File::Spec->devnull) or die $!;
-
-my $realclean_out = run("$make realclean");
-is( $?, 0, 'realclean' ) || diag($realclean_out);
-
-open(STDERR, ">&SAVERR") or die $!;
-close SAVERR;
-
-
-sub _normalize {
-    my $hash = shift;
-
-    while(my($k,$v) = each %$hash) {
-        delete $hash->{$k};
-        $hash->{lc $k} = $v;
-    }
 }
