@@ -1,14 +1,16 @@
 Build.PL
 Changes
+INSTALL.SKIP
 lib/ExtUtils/Install.pm
 lib/ExtUtils/Installed.pm
 lib/ExtUtils/Packlist.pm
 Makefile.PL
 MANIFEST
 MANIFEST.SKIP
-INSTALL.SKIP
+META.yml
 README
 t/basic.t
+t/can_write_dir.t
 t/Install.t
 t/Installed.t
 t/lib/MakeMaker/Test/Setup/BFD.pm
@@ -21,4 +23,3 @@ t/lib/TieOut.pm
 t/Packlist.t
 t/pod-coverage.t
 t/pod.t
-META.yml

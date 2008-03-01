@@ -1,5 +1,12 @@
 Revision history for ExtUtils-Install
 
+1.46 2008-03-01 12:42:35
+
+Apply patches from Michael Schwern (rt #33688, rt #31429, rt #31248) 
+and from Slaven Rezic (rt #33290).  Also implemented the suggestion from
+Schwern about not dieing when failing to remove a shadow file that is
+later on in INC than the installed version. (rt #2928)
+
 1.45 2008-02-27 13:55:27
 
 Fix rt.cpan.org #32813, use catpath() to attach volume name

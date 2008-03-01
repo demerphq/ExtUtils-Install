@@ -36,7 +36,7 @@ my $builder = Module::Build->new(
     },
 
     requires => {
-        'perl' => '5.005_03',
+        'perl' => '5.006',
         'vars' => 0,
 
         'AutoSplit' => 0,

@@ -1,4 +1,4 @@
-use 5.00503;
+BEGIN { require 5.006; }
 use strict;
 
 use lib qw(lib); # use ourself if possible not the existing stuff.
