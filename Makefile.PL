@@ -62,7 +62,8 @@ WriteMakefile(
     },
 
     INSTALLDIRS     => 'perl', # install into site not into lib.
-    NO_META => 1,
+    
+    #NO_META => 1,
 
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'ExtUtils-Install-*' },

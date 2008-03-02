@@ -1,6 +1,6 @@
 ---
 name: ExtUtils-Install
-version: 1.44
+version: 1.47
 author:
   - 'demerphq <yves@cpan.org>'
 abstract: install files from here to there
@@ -20,13 +20,13 @@ requires:
   File::Find: 0
   File::Path: 0
   File::Spec: 0
-  perl: 5.005_03
+  perl: 5.006
   vars: 0
 dynamic_config: 1
 provides:
   ExtUtils::Install:
     file: lib/ExtUtils/Install.pm
-    version: 1.44
+    version: 1.47
   ExtUtils::Install::Warn:
     file: lib/ExtUtils/Install.pm
   ExtUtils::Installed:

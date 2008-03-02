@@ -1,8 +1,20 @@
 Revision history for ExtUtils-Install
 
+1.47 
+
+Fix build process so a new META.YML is produced each time. Also
+add support for a new argument syntax to install() as well as
+support for always copying installed files even when the old
+file was identical. This is needed for some bundling mechanisms
+and can be activated by setting the environment variable EU_ALWAYS_COPY
+before the install process starts.
+
+Add a newer cleaner interface to install() to allow named parameters
+and easier external monitoring of what transpired.
+
 1.46 2008-03-01 12:42:35
 
-Apply patches from Michael Schwern (rt #33688, rt #31429, rt #31248) 
+Apply patches from Michael G. Schwern (rt #33688, rt #31429, rt #31248) 
 and from Slaven Rezic (rt #33290).  Also implemented the suggestion from
 Schwern about not dieing when failing to remove a shadow file that is
 later on in INC than the installed version. (rt #2928)
