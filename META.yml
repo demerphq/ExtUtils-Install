@@ -1,6 +1,6 @@
 ---
 name: ExtUtils-Install
-version: 1.48
+version: 1.49
 author:
   - 'demerphq <yves@cpan.org>'
 abstract: install files from here to there
@@ -22,7 +22,7 @@ dynamic_config: 1
 provides:
   ExtUtils::Install:
     file: lib/ExtUtils/Install.pm
-    version: 1.48
+    version: 1.49
   ExtUtils::Install::Warn:
     file: lib/ExtUtils/Install.pm
   ExtUtils::Installed:
