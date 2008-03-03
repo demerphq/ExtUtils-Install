@@ -2,8 +2,6 @@ package ExtUtils::Install;
 use strict;
 
 use vars qw(@ISA @EXPORT $VERSION $MUST_REBOOT %Config);
-$VERSION = '1.47';
-$VERSION = eval $VERSION;
 
 use AutoSplit;
 use Carp ();
@@ -35,6 +33,15 @@ ExtUtils::Install - install files from here to there
   uninstall($packlist);
 
   pm_to_blib({ 'lib/Foo/Bar.pm' => 'blib/lib/Foo/Bar.pm' });
+    
+=head1 VERSION
+
+1.48
+
+=cut
+
+$VERSION = '1.48';
+$VERSION = eval $VERSION;
 
 =head1 DESCRIPTION
 
@@ -569,7 +576,7 @@ Note that the new argument style and use of the %result hash is recommended.
 The $always_copy parameter which when true causes files to be updated 
 regardles as to whether they have changed, if it is defined but false then 
 copies are made only if the files have changed, if it is undefined then the 
-value of the environment variable EU_ALWAYS_COPY is used as default.
+value of the environment variable EU_INSTALL_ALWAYS_COPY is used as default.
 
 The %result hash will be populated with the various keys/subhashes reflecting 
 the install. Currently these keys and their structure are:
@@ -636,7 +643,9 @@ sub install { #XXX OS-SPECIFIC
     $dry_run  ||= 0;
 
     $skip= _get_install_skip($skip,$verbose);
-    $always_copy = $ENV{EU_ALWAYS_COPY}||0 
+    $always_copy =  $ENV{EU_INSTALL_ALWAYS_COPY}
+                 || $ENV{EU_ALWAYS_COPY} 
+                 || 0
         unless defined $always_copy;
 
     my(%from_to) = %$from_to;
@@ -1253,10 +1262,14 @@ Will prevent the automatic use of INSTALL.SKIP as the install skip file.
 If there is no INSTALL.SKIP file in the make directory then this value
 can be used to provide a default.
 
-=item B<EU_ALWAYS_COPY>
+=item B<EU_INSTALL_ALWAYS_COPY>
 
 If this environment variable is true then normal install processes will
 always overwrite older identical files during the install process.
+
+Note that the alias EU_ALWAYS_COPY will be supported if EU_INSTALL_ALWAYS_COPY
+is not defined until at least the 1.50 release. Please ensure you use the
+correct EU_INSTALL_ALWAYS_COPY. 
 
 =back
 

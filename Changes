@@ -1,5 +1,15 @@
 Revision history for ExtUtils-Install
 
+1.48
+
+We were getting N/A test results from CPAN testers due to the 
+presence of Config in the prequisities list. This has been corrected.
+
+Also it was pointed out that EU_ALWAYS_COPY did not follow the naming
+convention of other ExtUtils::Install environment variables. It has
+been renamed EU_INSTALL_ALWAYS_COPY. Support remains for the original 
+deprecated environment variable but it will be removed in 1.50.
+
 1.47 
 
 Fix build process so a new META.YML is produced each time. Also

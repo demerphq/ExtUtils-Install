@@ -1,6 +1,6 @@
 ---
 name: ExtUtils-Install
-version: 1.47
+version: 1.48
 author:
   - 'demerphq <yves@cpan.org>'
 abstract: install files from here to there
@@ -8,11 +8,8 @@ license: perl
 resources:
   license: http://dev.perl.org/licenses/
 requires:
-  AutoSplit: 0
   Carp: 0
-  Config: 0
   Cwd: 0
-  Exporter: 0
   ExtUtils::MakeMaker: 0
   File::Basename: 0
   File::Compare: 0
@@ -21,12 +18,11 @@ requires:
   File::Path: 0
   File::Spec: 0
   perl: 5.006
-  vars: 0
 dynamic_config: 1
 provides:
   ExtUtils::Install:
     file: lib/ExtUtils/Install.pm
-    version: 1.47
+    version: 1.48
   ExtUtils::Install::Warn:
     file: lib/ExtUtils/Install.pm
   ExtUtils::Installed:
@@ -35,7 +31,7 @@ provides:
   ExtUtils::Packlist:
     file: lib/ExtUtils/Packlist.pm
     version: 1.43
-generated_by: Module::Build version 0.2808
+generated_by: Module::Build version 0.280802
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html
   version: 1.2

@@ -36,13 +36,13 @@ WriteMakefile(
     PL_FILES            => {}, # Avoid auto extracting 'Build.PL'
 
     PREREQ_PM => {
-        'vars' => 0,
+#        'vars' => 0,
 
-        'AutoSplit' => 0,
-        'Exporter' => 0,
+#       'AutoSplit' => 0,
+#        'Exporter' => 0,
 
         'Carp' => 0,
-        'Config' => 0,
+#        'Config' => 0,
 
         'Cwd' => 0,
 

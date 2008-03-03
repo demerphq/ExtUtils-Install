@@ -37,13 +37,13 @@ my $builder = Module::Build->new(
 
     requires => {
         'perl' => '5.006',
-        'vars' => 0,
+#        'vars' => 0,
 
-        'AutoSplit' => 0,
-        'Exporter' => 0,
+#        'AutoSplit' => 0,
+#        'Exporter' => 0,
 
         'Carp' => 0,
-        'Config' => 0,
+#        'Config' => 0,
 
         'Cwd' => 0,
 
