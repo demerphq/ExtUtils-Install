@@ -20,6 +20,8 @@ use File::Spec;
 @ISA = ('Exporter');
 @EXPORT = ('install','uninstall','pm_to_blib', 'install_default');
 
+=pod 
+
 =head1 NAME
 
 ExtUtils::Install - install files from here to there
@@ -36,12 +38,14 @@ ExtUtils::Install - install files from here to there
     
 =head1 VERSION
 
-1.49
+1.50
 
 =cut
 
-$VERSION = '1.49';
+$VERSION = '1.50';
 $VERSION = eval $VERSION;
+
+=pod
 
 =head1 DESCRIPTION
 
@@ -278,6 +282,7 @@ sub _unlink_or_rename { #XXX OS-SPECIFIC
 }
 
 
+=pod
 
 =head2 Functions
 
@@ -340,19 +345,20 @@ sub _get_install_skip {
     return $skip
 }
 
+=pod
+
 =item _have_write_access
 
 Abstract a -w check that tries to use POSIX::access() if possible.
 
 =cut
 
-
 {
     my  $has_posix;
     sub _have_write_access {
         my $dir=shift;
-        if (!defined $has_posix) {
-            $has_posix=eval 'local $^W; require POSIX; 1' || 0;
+        unless (defined $has_posix) {
+            $has_posix= (!$Is_cygwin && eval 'local $^W; require POSIX; 1') || 0; 
         }
         if ($has_posix) {
             return POSIX::access($dir, POSIX::W_OK());
@@ -362,6 +368,7 @@ Abstract a -w check that tries to use POSIX::access() if possible.
     }
 }
 
+=pod
 
 =item _can_write_dir(C<$dir>)
 
@@ -415,6 +422,8 @@ sub _can_write_dir {
     return 0;
 }
 
+=pod
+
 =item _mkpath($dir,$show,$mode,$verbose,$dry_run)
 
 Wrapper around File::Path::mkpath() to handle errors.
@@ -461,6 +470,8 @@ sub _mkpath {
     
 }
 
+=pod
+
 =item _copy($from,$to,$verbose,$dry_run)
 
 Wrapper around File::Copy::copy to handle errors.
@@ -485,6 +496,8 @@ sub _copy {
     }
 }
 
+=pod
+
 =item _chdir($from)
 
 Wrapper around chdir to catch errors.
@@ -505,6 +518,8 @@ sub _chdir {
         or _choke("Couldn't chdir to '$dir': $!");
     return $ret;
 }
+
+=pod
 
 =end _private
 
@@ -902,6 +917,7 @@ sub directory_not_empty ($) {
   return $files;
 }
 
+=pod
 
 =item B<install_default> I<DISCOURAGED>
 
@@ -1101,6 +1117,7 @@ sub run_filter {
     close CMD or die "Filter command '$cmd' failed for $src";
 }
 
+=pod
 
 =item B<pm_to_blib>
 
@@ -1242,6 +1259,7 @@ sub _invokant {
     return $builder;
 }
 
+=pod
 
 =back
 

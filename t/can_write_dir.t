@@ -38,13 +38,15 @@ SKIP: {
     my $exists = FS->catdir(qw(exists));
     my $subdir = FS->catdir(qw(exists subdir));
     
-    skip "Tests will not work as expected when run under root", 9
-          unless $>; #effective UID must not be 0
+    
     ok mkdir $exists;
     END { rmdir $exists }
     
     ok chmod 0555, $exists, 'make read only';
-    ok !-w $exists;
+
+    skip "Current user or OS cannot create directories that they cannot read", 6
+          if -w $exists; # these tests require a directory we cant read
+
     is_deeply [can_write_dir($exists)], [0, $exists];
     is_deeply [can_write_dir($subdir)], [0, $exists, $subdir];
     

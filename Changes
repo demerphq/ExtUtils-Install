@@ -1,5 +1,12 @@
 Revision history for ExtUtils-Install
 
+1.50
+
+Previous patches to _have_write_access() were causing problems
+on Cygwin. So now we skip using POSIX::access under cygwin. 
+Also added some =pod directives to make my favorite editor
+highlight the pod properly.
+
 1.49
 
 Turns out that the new can_write_dir.t doesnt work properly under root
