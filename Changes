@@ -1,5 +1,12 @@
 Revision history for ExtUtils-Install
 
+1.50_03 
+
+SVN revision 40.
+
+Sigh, just after i released 1.50_02 I noticed that a test modified in it will fail 
+under VMS. So this is a fixup release for that alone.
+
 1.50_02
 
 SVN revision 39.

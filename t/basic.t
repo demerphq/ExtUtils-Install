@@ -102,8 +102,9 @@ like( $test_out, qr/All tests successful/,  '  successful' );
 is( $?, 0,                                  '  exited normally' ) ||
     diag $test_out;
 
-
-my $install_out = run("$make install VERBINST=1");
+# Test 'make install VERBINST=1'
+my $make_install_verbinst = make_macro($make, 'install', VERBINST => 1);
+my $install_out = run($make_install_verbinst);
 is( $?, 0, 'install' ) || diag $install_out;
 like( $install_out, qr/^Installing /m );
 like( $install_out, qr/^Writing /m );

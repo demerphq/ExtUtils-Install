@@ -42,7 +42,7 @@ ExtUtils::Install - install files from here to there
 
 =cut
 
-$VERSION = '1.50_02';
+$VERSION = '1.50_03';
 $VERSION = eval $VERSION;
 
 =pod
