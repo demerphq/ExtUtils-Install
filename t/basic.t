@@ -103,7 +103,7 @@ is( $?, 0,                                  '  exited normally' ) ||
     diag $test_out;
 
 
-my $install_out = run("$make install");
+my $install_out = run("$make install VERBINST=1");
 is( $?, 0, 'install' ) || diag $install_out;
 like( $install_out, qr/^Installing /m );
 like( $install_out, qr/^Writing /m );
@@ -129,7 +129,7 @@ ok( $files{'perllocal.pod'},'  perllocal.pod created' );
 SKIP: {
     skip 'VMS install targets do not preserve $(PREFIX)', 9 if $Is_VMS;
 
-    $install_out = run("$make install PREFIX=elsewhere");
+    $install_out = run("$make install PREFIX=elsewhere VERBINST=1");
     is( $?, 0, 'install with PREFIX override' ) || diag $install_out;
     like( $install_out, qr/^Installing /m );
     like( $install_out, qr/^Writing /m );
@@ -149,7 +149,7 @@ SKIP: {
 SKIP: {
     skip 'VMS install targets do not preserve $(DESTDIR)', 11 if $Is_VMS;
 
-    $install_out = run("$make install PREFIX= DESTDIR=other");
+    $install_out = run("$make install PREFIX= DESTDIR=other VERBINST=1");
     is( $?, 0, 'install with DESTDIR' ) || 
         diag $install_out;
     like( $install_out, qr/^Installing /m );
@@ -190,7 +190,7 @@ SKIP: {
 SKIP: {
     skip 'VMS install targets do not preserve $(PREFIX)', 10 if $Is_VMS;
 
-    $install_out = run("$make install PREFIX=elsewhere DESTDIR=other/");
+    $install_out = run("$make install PREFIX=elsewhere DESTDIR=other/ VERBINST=1");
     is( $?, 0, 'install with PREFIX override and DESTDIR' ) || 
         diag $install_out;
     like( $install_out, qr/^Installing /m );

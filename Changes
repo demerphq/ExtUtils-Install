@@ -2,6 +2,8 @@ Revision history for ExtUtils-Install
 
 1.50_02
 
+SVN revision 39.
+
 Synchronize with the changes that were made in blead perl 
 patch #33567. VMS changes by Craig Berry. See
 
@@ -11,6 +13,22 @@ This was marked in the pod as 1.51 but not actually version bumped.
 
 So I've marked it as 1.50_02 as a test release prior to putting it out
 as the real 1.51
+
+This release also restores the missing installed.t which was accidentally
+missed by the MANIFEST having a duplicate entry for install.t instead.
+Probably something should have warned about this, but I haven't worked out 
+what. 
+
+Includes changes from Activestate/ActivePerl:
+
+- To make installation less chatty when not under verbose mode. See
+
+http://rt.cpan.org/Public/Bug/Display.html?id=5903
+
+- To install HTML documentation files under builds that set $Config{installhtmldir}
+(and presumably also create HTML versions of the pod -- which is quite nice actually :-)
+
+http://rt.cpan.org/Ticket/Display.html?id=37727
 
 1.50_01
 
