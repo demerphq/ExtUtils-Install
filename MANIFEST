@@ -13,7 +13,7 @@ t/basic.t
 t/can_write_dir.t
 t/Install.t
 t/Installapi2.t
-t/Install.t
+t/Installed.t
 t/lib/MakeMaker/Test/Setup/BFD.pm
 t/lib/MakeMaker/Test/Utils.pm
 t/lib/Test/Builder.pm
