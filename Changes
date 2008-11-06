@@ -1,5 +1,11 @@
 Revision history for ExtUtils-Install
 
+1.50_05
+
+SVN revision 42.
+
+Fix broken test as reported by Craig Berry.
+
 1.50_04
 
 SVN revision 41.

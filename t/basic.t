@@ -26,7 +26,7 @@ use vars qw/$TESTS $TEST_INSTALL_ONLY/;
 $::TESTS= 55;
 $::TEST_INSTALL_ONLY= 1;
 
-(my $file=$0)=~s/\.t$/.plt/;
+(my $file=$0)=~s/\.t$/.pl/;
 do $file;
 
 #$file=~s/\.pl$/_finish.pl/;
