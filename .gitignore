@@ -9,3 +9,4 @@
 /_build
 /*.bak
 /*.old
+make_from_core.sh
