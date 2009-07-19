@@ -5,6 +5,7 @@
 ,v$
 \B\.svn\b
 \b_darcs\b
+\.git
 
 # Avoid temp and backup files.
 ~$
