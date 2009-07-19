@@ -5,6 +5,8 @@
 ,v$
 \B\.svn\b
 \b_darcs\b
+\.git
+make_from_core.sh
 
 # Avoid Makemaker generated and utility files.
 \bMANIFEST\.bak

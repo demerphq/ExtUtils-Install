@@ -120,14 +120,19 @@ sub _make_entry {
     $self->{$module}= $data;
 }
 
-
+our $INSTALLED;
 sub new {
     my ($class) = shift(@_);
     $class = ref($class) || $class;
 
     my %args = @_;
 
-    my $self =bless {}, $class;
+    return $INSTALLED if $INSTALLED and ($args{default_get} || $args{default});
+
+    my $self = bless {}, $class;
+
+    $INSTALLED= $self if $args{default_set} || $args{default};
+
 
     if ($args{config_override}) {
         eval {
@@ -225,11 +230,9 @@ sub _module_name {
     return $module;
 }
 
-
-
 sub modules {
     my ($self) = @_;
-    $self= $self->new() if !ref $self;
+    $self= $self->new(default=>1) if !ref $self;
 
     # Bug/feature of sort in scalar context requires this.
     return wantarray
@@ -239,7 +242,7 @@ sub modules {
 
 sub files {
     my ($self, $module, $type, @under) = @_;
-    $self= $self->new() if !ref $self;
+    $self= $self->new(default=>1) if !ref $self;
 
     # Validate arguments
     Carp::croak("$module is not installed") if (! exists($self->{$module}));
@@ -258,7 +261,7 @@ sub files {
 
 sub directories {
     my ($self, $module, $type, @under) = @_;
-    $self= $self->new() if !ref $self;
+    $self= $self->new(default=>1) if !ref $self;
     my (%dirs);
     foreach my $file ($self->files($module, $type, @under)) {
         $dirs{dirname($file)}++;
@@ -268,7 +271,7 @@ sub directories {
 
 sub directory_tree {
     my ($self, $module, $type, @under) = @_;
-    $self= $self->new() if !ref $self;
+    $self= $self->new(default=>1) if !ref $self;
     my (%dirs);
     foreach my $dir ($self->directories($module, $type, @under)) {
         $dirs{$dir}++;
@@ -285,28 +288,28 @@ sub directory_tree {
 
 sub validate {
     my ($self, $module, $remove) = @_;
-    $self= $self->new() if !ref $self;
+    $self= $self->new(default=>1) if !ref $self;
     Carp::croak("$module is not installed") if (! exists($self->{$module}));
     return($self->{$module}{packlist}->validate($remove));
 }
 
 sub packlist {
     my ($self, $module) = @_;
-    $self= $self->new() if !ref $self;
+    $self= $self->new(default=>1) if !ref $self;
     Carp::croak("$module is not installed") if (! exists($self->{$module}));
     return($self->{$module}{packlist});
 }
 
 sub version {
     my ($self, $module) = @_;
-    $self= $self->new() if !ref $self;
+    $self= $self->new(default=>1) if !ref $self;
     Carp::croak("$module is not installed") if (! exists($self->{$module}));
     return($self->{$module}{version});
 }
 
 sub debug_dump {
     my ($self, $module) = @_;
-    $self= $self->new() if !ref $self;
+    $self= $self->new(default=>1) if !ref $self;
     local $self->{":private:"}{Config};
     require Data::Dumper;
     print Data::Dumper->new([$self])->Sortkeys(1)->Indent(1)->Dump();
@@ -348,7 +351,13 @@ stores their contents. The .packlists can be queried with the functions
 described below. Where it searches by default is determined by the settings found
 in C<%Config::Config>, and what the value is of the PERL5LIB environment variable.
 
-=head1 FUNCTIONS
+=head1 METHODS
+
+Unless specified otherwise all method can be called as class methods, or as object
+methods. If called as class methods then the "default" object will be used, and if
+necessary created using the current processes %Config and @INC.  See the
+'default' option to new() for details.
+
 
 =over 4
 
@@ -377,12 +386,23 @@ from C<@INC>.
     my @dirs = split(/\Q$Config{path_sep}\E/, $ENV{PERL5LIB});
     my $p5libs = ExtUtils::Installed->new(inc_override=>\@dirs);
 
+B<Note>: You probably do not want to use these options alone, almost always
+you will want to set both together.
+
 The parameter c<extra_libs> can be used to specify B<additional> paths to
 search for installed modules. For instance
 
     my $installed = ExtUtils::Installed->new(extra_libs=>["/my/lib/path"]);
 
 This should only be necessary if C</my/lib/path> is not in PERL5LIB.
+
+Finally there is the 'default', and the related 'default_get' and 'default_set'
+options. These options control the "default" object which is provided by the
+class interface to the methods. Setting C<default_get> to true tells the constructor
+to return the default object if it is defined. Setting C<default_set> to true tells
+the constructor to make the default object the constructed object. Setting the
+C<default> option is like setting both to true. This is used primarily internally
+and probably isn't interesting to any real user.
 
 =item modules()
 
