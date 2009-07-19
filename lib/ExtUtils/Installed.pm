@@ -216,6 +216,7 @@ sub _module_name {
 
 sub modules {
     my ($self) = @_;
+    $self= $self->new() if !ref $self;
 
     # Bug/feature of sort in scalar context requires this.
     return wantarray
@@ -225,6 +226,7 @@ sub modules {
 
 sub files {
     my ($self, $module, $type, @under) = @_;
+    $self= $self->new() if !ref $self;
 
     # Validate arguments
     Carp::croak("$module is not installed") if (! exists($self->{$module}));
@@ -243,6 +245,7 @@ sub files {
 
 sub directories {
     my ($self, $module, $type, @under) = @_;
+    $self= $self->new() if !ref $self;
     my (%dirs);
     foreach my $file ($self->files($module, $type, @under)) {
         $dirs{dirname($file)}++;
@@ -252,6 +255,7 @@ sub directories {
 
 sub directory_tree {
     my ($self, $module, $type, @under) = @_;
+    $self= $self->new() if !ref $self;
     my (%dirs);
     foreach my $dir ($self->directories($module, $type, @under)) {
         $dirs{$dir}++;
@@ -268,20 +272,31 @@ sub directory_tree {
 
 sub validate {
     my ($self, $module, $remove) = @_;
+    $self= $self->new() if !ref $self;
     Carp::croak("$module is not installed") if (! exists($self->{$module}));
     return($self->{$module}{packlist}->validate($remove));
 }
 
 sub packlist {
     my ($self, $module) = @_;
+    $self= $self->new() if !ref $self;
     Carp::croak("$module is not installed") if (! exists($self->{$module}));
     return($self->{$module}{packlist});
 }
 
 sub version {
     my ($self, $module) = @_;
+    $self= $self->new() if !ref $self;
     Carp::croak("$module is not installed") if (! exists($self->{$module}));
     return($self->{$module}{version});
+}
+
+sub debug_dump {
+    my ($self, $module) = @_;
+    $self= $self->new() if !ref $self;
+    local $self->{":private:"}{Config};
+    require Data::Dumper;
+    print Data::Dumper->new([$self])->Sortkeys(1)->Indent(1)->Dump();
 }
 
 
