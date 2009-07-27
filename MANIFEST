@@ -9,7 +9,6 @@ MANIFEST
 MANIFEST.SKIP
 META.yml
 README
-t/basic.pl
 t/basic.t
 t/can_write_dir.t
 t/Install.t
