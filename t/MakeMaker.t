@@ -78,14 +78,14 @@ delete @ENV{qw(PREFIX LIB MAKEFLAGS)};
 
     ok( -r '../dummy-install',     '  install dir created' );
     my %files = ();
-    find( sub { 
+    find( sub {
               # do it case-insensitive for non-case preserving OSs
               my $file = lc $_;
 
               # VMS likes to put dots on the end of things that don't have them.
               $file =~ s/\.$// if $Is_VMS;
 
-              $files{$file} = $File::Find::name; 
+              $files{$file} = $File::Find::name;
           }, '../dummy-install' );
     ok( $files{'dummy.pm'},     '  Dummy.pm installed' );
     ok( $files{'liar.pm'},      '  Liar.pm installed'  );
