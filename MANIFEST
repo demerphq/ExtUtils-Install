@@ -20,7 +20,7 @@ t/lib/Test/Builder/Module.pm
 t/lib/Test/More.pm
 t/lib/Test/Simple.pm
 t/lib/TieOut.pm
-t/MakeMaker.t
+t/InstallWithMM.t
 t/Packlist.t
 t/pod-coverage.t
 t/pod.t

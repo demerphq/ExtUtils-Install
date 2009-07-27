@@ -1,5 +1,12 @@
 Revision history for ExtUtils-Install
 
+1.54
+
+This is a "no-change" version bump because I pushed the v1.53 change
+and then realized that MakeMaker.t was a bad name for a file that would
+end up in core where the EUMM tests and the EUI tests are in the same
+directory. This renames it to InstallWithMM.t.
+
 1.53
 
 Final stage of the divorce from EUMM. Now the EUMM related tests are no
