@@ -9,7 +9,6 @@ MANIFEST
 MANIFEST.SKIP
 META.yml
 README
-t/basic.t
 t/can_write_dir.t
 t/Install.t
 t/Installapi2.t
@@ -21,6 +20,7 @@ t/lib/Test/Builder/Module.pm
 t/lib/Test/More.pm
 t/lib/Test/Simple.pm
 t/lib/TieOut.pm
+t/MakeMaker.t
 t/Packlist.t
 t/pod-coverage.t
 t/pod.t
