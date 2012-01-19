@@ -50,7 +50,7 @@ sub __find_relocations {
     return qr/^($alternations)/o;
 }
 
-sub new($$) {
+sub new {
     my( $class, $packfile ) = @_;
 
     $class = ref($class) || $class;
@@ -101,7 +101,7 @@ sub CLEAR {
 
 sub DESTROY {}
 
-sub read($;$) {
+sub read {
     my( $self, $packfile ) = @_;
     $self = tied(%$self) || $self;
 
@@ -134,8 +134,7 @@ sub read($;$) {
 }
 
 my $Relocations;
-
-sub write($;$) {
+sub write {
     my( $self, $packfile ) = @_;
     $self = tied(%$self) || $self;
     if( defined($packfile) ) { $self->{packfile} = $packfile; }
@@ -176,7 +175,7 @@ sub write($;$) {
     close($fh);
 }
 
-sub validate($;$) {
+sub validate {
     my( $self, $remove ) = @_;
     $self = tied(%$self) || $self;
     my @missing;
@@ -189,7 +188,7 @@ sub validate($;$) {
     return(@missing);
 }
 
-sub packlist_file($) {
+sub packlist_file {
     my($self) = @_;
     $self = tied(%$self) || $self;
     return( $self->{packfile} );
