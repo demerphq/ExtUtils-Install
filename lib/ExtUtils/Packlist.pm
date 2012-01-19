@@ -19,13 +19,11 @@ Make a filehandle. Same kind of idea as Symbol::gensym().
 
 =cut
 
-sub mkfh()
-{
-no strict;
-my $fh = \*{$fhname++};
-use strict;
-return($fh);
+sub mkfh {
+    require Symbol;
+    return Symbol::gensym();
 }
+
 
 =item __find_relocations
 
