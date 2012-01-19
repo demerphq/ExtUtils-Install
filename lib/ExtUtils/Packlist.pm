@@ -4,8 +4,8 @@ use 5.00503;
 use strict;
 use Carp qw();
 use Config;
-use vars qw($VERSION $Relocations);
-$VERSION = '1.43';
+
+our $VERSION = '1.43';
 $VERSION = eval $VERSION;
 
 # Used for generating filehandle globs.  IO::File might not be available!
@@ -143,6 +143,7 @@ while (defined($line = <$fh>))
 close($fh);
 }
 
+my $Relocations;
 sub write($;$)
 {
 my ($self, $packfile) = @_;
