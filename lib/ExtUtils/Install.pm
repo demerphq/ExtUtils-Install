@@ -3,6 +3,8 @@ use strict;
 
 use vars qw(@ISA @EXPORT $VERSION $MUST_REBOOT %Config);
 
+use 5.006;
+
 use AutoSplit;
 use Carp ();
 use Config qw(%Config);

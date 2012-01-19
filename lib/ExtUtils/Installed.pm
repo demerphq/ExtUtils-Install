@@ -1,6 +1,6 @@
 package ExtUtils::Installed;
 
-use 5.00503;
+use 5.006;
 use strict;
 #use warnings; # XXX requires 5.6
 use Carp qw();
