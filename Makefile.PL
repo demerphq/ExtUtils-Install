@@ -74,7 +74,6 @@ WriteMakefile1(
     clean => { FILES => 'ExtUtils-Install-*' },
 
     META_MERGE => {
-      "meta-spec" => { version => 2 },
       resources => {
         license     => 'http://dev.perl.org/licenses/',
         homepage    => 'https://metacpan.org/release/ExtUtils-Install',
