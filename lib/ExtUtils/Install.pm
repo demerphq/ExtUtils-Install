@@ -1178,9 +1178,9 @@ environment variable will silence this output.
 =cut
 
 sub pm_to_blib {
-    my($fromto,$autodir,$pm_filter) = @_;
+    my($fromto,$autodir,$pm_filter,$perm_dir) = @_;
 
-    _mkpath($autodir,0,0755);
+    _mkpath($autodir,0,$perm_dir);
     while(my($from, $to) = each %$fromto) {
         if( -f $to && -s $from == -s $to && -M $to < -M $from ) {
             print "Skip $to (unchanged)\n" unless $INSTALL_QUIET;
@@ -1203,7 +1203,7 @@ sub pm_to_blib {
             # we wont try hard here. its too likely to mess things up.
             forceunlink($to);
         } else {
-            _mkpath(dirname($to),0,0755);
+            _mkpath(dirname($to),0,$perm_dir);
         }
         if ($need_filtering) {
             run_filter($pm_filter, $from, $to);
