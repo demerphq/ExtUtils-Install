@@ -77,8 +77,8 @@ WriteMakefile1(
       resources => {
         license     => 'http://dev.perl.org/licenses/',
         homepage    => 'https://metacpan.org/release/ExtUtils-Install',
-        bugtracker  => 'http://rt.cpan.org/NoAuth/Bugs.html?Dist=ExtUtils-Install',
-        repository  => 'http://github.com/Perl-Toolchain-Gang/ExtUtils-Install',
+        bugtracker  => 'https://rt.cpan.org/NoAuth/Bugs.html?Dist=ExtUtils-Install',
+        repository  => 'https://github.com/Perl-Toolchain-Gang/ExtUtils-Install',
       },
     },
 );
