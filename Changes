@@ -1,5 +1,9 @@
 Revision history for ExtUtils-Install
 
+2.00
+
+- Formal release to change META information and synchronise versioning
+  
 1.68
 
 - Introduce env var PERL_INSTALL_QUIET to silence pm_to_blib() output
