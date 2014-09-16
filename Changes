@@ -1,5 +1,10 @@
 Revision history for ExtUtils-Install
 
+2.02
+
+- Reverted change to pm_to_blib that causes write-only directory paths to
+  be created
+
 2.00
 
 - Formal release to change META information and synchronise versioning

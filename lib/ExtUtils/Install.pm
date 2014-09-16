@@ -42,7 +42,7 @@ ExtUtils::Install - install files from here to there
 
 =cut
 
-$VERSION = '2.00';  # <-- do not forget to update the POD section just above this line!
+$VERSION = '2.02';  # <-- do not forget to update the POD section just above this line!
 $VERSION = eval $VERSION;
 
 =pod
