@@ -1,5 +1,10 @@
 Revision history for ExtUtils-Install
 
+2.04
+
+- Cosmetic change as forgot to update version information in POD on last two
+  releases
+
 2.02
 
 - Reverted change to pm_to_blib that causes write-only directory paths to
