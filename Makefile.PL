@@ -74,17 +74,11 @@ WriteMakefile1(
     clean => { FILES => 'ExtUtils-Install-*' },
 
     META_MERGE => {
-      "meta-spec" => { version => 2 },
       resources => {
-        repository => {
-          type => 'git',
-          url => 'git://perl5.git.perl.org/perl.git',
-          web => 'http://perl5.git.perl.org/perl.git/',
-        },
-        bugtracker => {
-         "mailto" => 'perlbug@perl.org',
-         "web"    => 'http://rt.perl.org/rt3/',
-        },
+        license     => 'http://dev.perl.org/licenses/',
+        homepage    => 'https://metacpan.org/release/ExtUtils-Install',
+        bugtracker  => 'https://rt.cpan.org/NoAuth/Bugs.html?Dist=ExtUtils-Install',
+        repository  => 'https://github.com/Perl-Toolchain-Gang/ExtUtils-Install',
       },
     },
 );
