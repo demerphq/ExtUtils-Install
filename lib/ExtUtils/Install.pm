@@ -133,8 +133,12 @@ sub _confess {
 }
 
 sub _compare {
-    require File::Compare;
-    File::Compare::compare(@_);
+    # avoid loading File::Compare in the common case
+    if (-f $_[1] && -s _ == -s $_[0]) {
+        require File::Compare;
+        return File::Compare::compare(@_);
+    }
+    return 1;
 }
 
 
@@ -741,14 +745,7 @@ sub install { #XXX OS-SPECIFIC
             # we have to do this for back compat with old File::Finds
             # and because the target is relative
             my $save_cwd = _chdir($cwd);
-            my $diff = 0;
-            # XXX: I wonder how useful this logic is actually -- demerphq
-            if ( $always_copy or !-f $targetfile or -s $targetfile != $size) {
-                $diff++;
-            } else {
-                # we might not need to copy this file
-                $diff = _compare($sourcefile, $targetfile);
-            }
+            my $diff = $always_copy || _compare($sourcefile, $targetfile);
             $check_dirs{$targetdir}++
                 unless -w $targetfile;
 
@@ -1067,13 +1064,8 @@ sub inc_uninstall {
         # The reason why we compare file's contents is, that we cannot
         # know, which is the file we just installed (AFS). So we leave
         # an identical file in place
-        my $diff = 0;
-        if ( -f $targetfile && -s _ == -s $filepath) {
-            # We have a good chance, we can skip this one
-            $diff = _compare($filepath,$targetfile);
-        } else {
-            $diff++;
-        }
+        my $diff = _compare($filepath,$targetfile);
+
         print "#$file and $targetfile differ\n" if $diff && $verbose > 1;
 
         if (!$diff or $targetfile eq $ignore) {
@@ -1176,7 +1168,7 @@ sub pm_to_blib {
         my $need_filtering = defined $pm_filter && length $pm_filter &&
                              $from =~ /\.pm$/;
 
-        if (!$need_filtering && 0 == _compare($from,$to)) {
+        if (!$need_filtering && !_compare($from,$to)) {
             print "Skip $to (unchanged)\n" unless $INSTALL_QUIET;
             next;
         }
