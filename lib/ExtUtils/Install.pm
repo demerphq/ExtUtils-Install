@@ -1,8 +1,6 @@
 package ExtUtils::Install;
 use strict;
 
-use vars qw(@ISA @EXPORT $VERSION $MUST_REBOOT %Config);
-
 use AutoSplit;
 use Carp ();
 use Config qw(%Config);
@@ -16,9 +14,10 @@ use File::Find qw(find);
 use File::Path;
 use File::Spec;
 
+our @ISA = ('Exporter');
+our @EXPORT = ('install','uninstall','pm_to_blib', 'install_default');
 
-@ISA = ('Exporter');
-@EXPORT = ('install','uninstall','pm_to_blib', 'install_default');
+our $MUST_REBOOT;
 
 =pod
 
@@ -42,7 +41,7 @@ ExtUtils::Install - install files from here to there
 
 =cut
 
-$VERSION = '2.04';  # <-- do not forget to update the POD section just above this line!
+our $VERSION = '2.04';  # <-- do not forget to update the POD section just above this line!
 $VERSION = eval $VERSION;
 
 =pod
