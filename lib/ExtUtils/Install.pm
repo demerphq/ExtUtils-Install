@@ -1,16 +1,11 @@
 package ExtUtils::Install;
 use strict;
 
-use AutoSplit;
-use Carp ();
 use Config qw(%Config);
 use Cwd qw(cwd);
-use Exporter;
-use ExtUtils::Packlist;
+use Exporter ();
 use File::Basename qw(dirname);
-use File::Compare qw(compare);
 use File::Copy;
-use File::Find qw(find);
 use File::Path;
 use File::Spec;
 
@@ -109,7 +104,6 @@ my $INSTALL_ROOT = $ENV{PERL_INSTALL_ROOT};
 my $INSTALL_QUIET = $ENV{PERL_INSTALL_QUIET};
 
 my $Curdir = File::Spec->curdir;
-my $Updir  = File::Spec->updir;
 
 sub _estr(@) {
     return join "\n",'!' x 72,@_,'!' x 72,'';
@@ -125,7 +119,22 @@ sub _warnonce(@) {
 sub _choke(@) {
     my $first=shift;
     my $msg=_estr "ERROR: $first",@_;
+    require Carp;
     Carp::croak($msg);
+}
+
+sub _croak {
+    require Carp;
+    Carp::croak(@_);
+}
+sub _confess {
+    require Carp;
+    Carp::confess(@_);
+}
+
+sub _compare {
+    require File::Compare;
+    File::Compare::compare(@_);
 }
 
 
@@ -170,7 +179,7 @@ If $moan is true then returns 0 on error and warns instead of dies.
     my $Has_Win32API_File;
     sub _move_file_at_boot { #XXX OS-SPECIFIC
         my ( $file, $target, $moan  )= @_;
-        Carp::confess("Panic: Can't _move_file_at_boot on this platform!")
+        _confess("Panic: Can't _move_file_at_boot on this platform!")
              unless $CanMoveAtBoot;
 
         my $descr= ref $target
@@ -378,8 +387,8 @@ Abstract a -w check that tries to use POSIX::access() if possible.
     sub _have_write_access {
         my $dir=shift;
         unless (defined $has_posix) {
-            $has_posix= (!$Is_cygwin && !$Is_Win32
-             && eval 'local $^W; require POSIX; 1') || 0;
+            $has_posix = (!$Is_cygwin && !$Is_Win32
+             && eval { local $^W; require POSIX; 1} ) || 0;
         }
         if ($has_posix) {
             return POSIX::access($dir, POSIX::W_OK());
@@ -518,7 +527,7 @@ sub _copy {
     }
     if (!$dry_run) {
         File::Copy::copy($from,$to)
-            or Carp::croak( _estr "ERROR: Cannot copy '$from' to '$to': $!" );
+            or _croak( _estr "ERROR: Cannot copy '$from' to '$to': $!" );
     }
 }
 
@@ -672,7 +681,7 @@ sub install { #XXX OS-SPECIFIC
     if (@_==1 and eval { 1+@$from_to }) {
         my %opts        = @$from_to;
         $from_to        = $opts{from_to}
-                            or Carp::confess("from_to is a mandatory parameter");
+                            or _confess("from_to is a mandatory parameter");
         $verbose        = $opts{verbose};
         $dry_run        = $opts{dry_run};
         $uninstall_shadows  = $opts{uninstall_shadows};
@@ -693,6 +702,7 @@ sub install { #XXX OS-SPECIFIC
 
     my(%from_to) = %$from_to;
     my(%pack, $dir, %warned);
+    require ExtUtils::Packlist;
     my($packlist) = ExtUtils::Packlist->new();
 
     local(*DIR);
@@ -705,6 +715,7 @@ sub install { #XXX OS-SPECIFIC
     my $cwd = cwd();
     my @found_files;
     my %check_dirs;
+    require File::Find;
 
     MOD_INSTALL: foreach my $source (sort keys %from_to) {
         #copy the tree to the target directory without altering
@@ -735,7 +746,8 @@ sub install { #XXX OS-SPECIFIC
         # XXX OS-SPECIFIC
         # File::Find seems to always be Unixy except on MacPerl :(
         my $current_directory= $Is_MacPerl ? $Curdir : '.';
-        find(sub {
+
+        File::Find::find(sub {
             my ($mode,$size,$atime,$mtime) = (stat)[2,7,8,9];
 
             return if !-f _;
@@ -764,7 +776,7 @@ sub install { #XXX OS-SPECIFIC
                 $diff++;
             } else {
                 # we might not need to copy this file
-                $diff = compare($sourcefile, $targetfile);
+                $diff = _compare($sourcefile, $targetfile);
             }
             $check_dirs{$targetdir}++
                 unless -w $targetfile;
@@ -935,7 +947,8 @@ Returns 0 if there is not.
 sub directory_not_empty ($) {
   my($dir) = @_;
   my $files = 0;
-  find(sub {
+  require File::Find;
+  File::Find::find(sub {
            return if $_ eq ".exists";
            if (-f) {
              $File::Find::prune++;
@@ -969,7 +982,7 @@ Consider its use discouraged.
 =cut
 
 sub install_default {
-  @_ < 2 or Carp::croak("install_default should be called with 0 or 1 argument");
+  @_ < 2 or _croak("install_default should be called with 0 or 1 argument");
   my $FULLEXT = @_ ? shift : $ARGV[0];
   defined $FULLEXT or die "Do not know to where to write install log";
   my $INST_LIB = File::Spec->catdir($Curdir,"blib","lib");
@@ -1025,6 +1038,7 @@ sub uninstall {
         unless -f $fil;
     # my $my_req = $self->catfile(qw(auto ExtUtils Install forceunlink.al));
     # require $my_req; # Hairy, but for the first
+    require ExtUtils::Packlist;
     my ($packlist) = ExtUtils::Packlist->new($fil);
     foreach (sort(keys(%$packlist))) {
         chomp;
@@ -1087,7 +1101,7 @@ sub inc_uninstall {
         my $diff = 0;
         if ( -f $targetfile && -s _ == -s $filepath) {
             # We have a good chance, we can skip this one
-            $diff = compare($filepath,$targetfile);
+            $diff = _compare($filepath,$targetfile);
         } else {
             $diff++;
         }
@@ -1195,7 +1209,7 @@ sub pm_to_blib {
         my $need_filtering = defined $pm_filter && length $pm_filter &&
                              $from =~ /\.pm$/;
 
-        if (!$need_filtering && 0 == compare($from,$to)) {
+        if (!$need_filtering && 0 == _compare($from,$to)) {
             print "Skip $to (unchanged)\n" unless $INSTALL_QUIET;
             next;
         }
@@ -1234,7 +1248,8 @@ locking (ie. Windows).  So we wrap it and close the filehandle.
 =cut
 
 sub _autosplit { #XXX OS-SPECIFIC
-    my $retval = autosplit(@_);
+    require AutoSplit;
+    my $retval = AutoSplit::autosplit(@_);
     close *AutoSplit::IN if defined *AutoSplit::IN{IO};
 
     return $retval;
