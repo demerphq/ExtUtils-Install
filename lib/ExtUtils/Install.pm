@@ -91,7 +91,6 @@ Dies with a special message.
 
 BEGIN {
     *Is_VMS        = $^O eq 'VMS'     ? sub(){1} : sub(){0};
-    *Is_MacPerl    = $^O eq 'MacOS'   ? sub(){1} : sub(){0};
     *Is_Win32      = $^O eq 'Win32'   ? sub(){1} : sub(){0};
     *Is_cygwin     = $^O eq 'cygwin'  ? sub(){1} : sub(){0};
     *CanMoveAtBoot = ($^O eq 'MSWin32' || $^O eq 'cygwin') ? sub(){1} : sub(){0};
@@ -718,6 +717,12 @@ sub install { #XXX OS-SPECIFIC
     my %check_dirs;
     require File::Find;
 
+    my $blib_lib  = File::Spec->catdir('blib', 'lib');
+    my $blib_arch = File::Spec->catdir('blib', 'arch');
+
+    # File::Find seems to always be Unixy except on MacPerl :(
+    my $current_directory = $^O eq 'MacOS' ? $Curdir : '.';
+
     MOD_INSTALL: foreach my $source (sort keys %from_to) {
         #copy the tree to the target directory without altering
         #timestamp and permission and remember for the .packlist
@@ -731,8 +736,6 @@ sub install { #XXX OS-SPECIFIC
 
         my $targetroot = install_rooted_dir($from_to{$source});
 
-        my $blib_lib  = File::Spec->catdir('blib', 'lib');
-        my $blib_arch = File::Spec->catdir('blib', 'arch');
         if ($source eq $blib_lib and
             exists $from_to{$blib_arch} and
             directory_not_empty($blib_arch)
@@ -745,9 +748,6 @@ sub install { #XXX OS-SPECIFIC
         _chdir($source);
         # 5.5.3's File::Find missing no_chdir option
         # XXX OS-SPECIFIC
-        # File::Find seems to always be Unixy except on MacPerl :(
-        my $current_directory = Is_MacPerl ? $Curdir : '.';
-
         File::Find::find(sub {
             my ($mode,$size,$atime,$mtime) = (stat)[2,7,8,9];
 
