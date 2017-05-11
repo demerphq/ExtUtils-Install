@@ -101,12 +101,6 @@ my $Is_Win32   = $^O eq 'MSWin32';
 my $Is_cygwin  = $^O eq 'cygwin';
 my $CanMoveAtBoot = ($Is_Win32 || $Is_cygwin);
 
-# *note* CanMoveAtBoot is only incidentally the same condition as below
-# this needs not hold true in the future.
-my $Has_Win32API_File = ($Is_Win32 || $Is_cygwin)
-    ? (eval {require Win32API::File; 1} || 0)
-    : 0;
-
 
 my $Inc_uninstall_warn_handler;
 
@@ -173,47 +167,53 @@ If $moan is true then returns 0 on error and warns instead of dies.
 
 =cut
 
+{
+    my $Has_Win32API_File;
+    sub _move_file_at_boot { #XXX OS-SPECIFIC
+        my ( $file, $target, $moan  )= @_;
+        Carp::confess("Panic: Can't _move_file_at_boot on this platform!")
+             unless $CanMoveAtBoot;
 
+        my $descr= ref $target
+                    ? "'$file' for deletion"
+                    : "'$file' for installation as '$target'";
 
-sub _move_file_at_boot { #XXX OS-SPECIFIC
-    my ( $file, $target, $moan  )= @_;
-    Carp::confess("Panic: Can't _move_file_at_boot on this platform!")
-         unless $CanMoveAtBoot;
+        # *note* CanMoveAtBoot is only incidentally the same condition as below
+        # this needs not hold true in the future.
+        $Has_Win32API_File = ($Is_Win32 || $Is_cygwin)
+            ? (eval {require Win32API::File; 1} || 0)
+            : 0 unless defined $Has_Win32API_File;
+        if ( ! $Has_Win32API_File ) {
 
-    my $descr= ref $target
-                ? "'$file' for deletion"
-                : "'$file' for installation as '$target'";
+            my @msg=(
+                "Cannot schedule $descr at reboot.",
+                "Try installing Win32API::File to allow operations on locked files",
+                "to be scheduled during reboot. Or try to perform the operation by",
+                "hand yourself. (You may need to close other perl processes first)"
+            );
+            if ( $moan ) { _warnonce(@msg) } else { _choke(@msg) }
+            return 0;
+        }
+        my $opts= Win32API::File::MOVEFILE_DELAY_UNTIL_REBOOT();
+        $opts= $opts | Win32API::File::MOVEFILE_REPLACE_EXISTING()
+            unless ref $target;
 
-    if ( ! $Has_Win32API_File ) {
+        _chmod( 0666, $file );
+        _chmod( 0666, $target ) unless ref $target;
 
-        my @msg=(
-            "Cannot schedule $descr at reboot.",
-            "Try installing Win32API::File to allow operations on locked files",
-            "to be scheduled during reboot. Or try to perform the operation by",
-            "hand yourself. (You may need to close other perl processes first)"
-        );
-        if ( $moan ) { _warnonce(@msg) } else { _choke(@msg) }
+        if (Win32API::File::MoveFileEx( $file, $target, $opts )) {
+            $MUST_REBOOT ||= ref $target ? 0 : 1;
+            return 1;
+        } else {
+            my @msg=(
+                "MoveFileEx $descr at reboot failed: $^E",
+                "You may try to perform the operation by hand yourself. ",
+                "(You may need to close other perl processes first).",
+            );
+            if ( $moan ) { _warnonce(@msg) } else { _choke(@msg) }
+        }
         return 0;
     }
-    my $opts= Win32API::File::MOVEFILE_DELAY_UNTIL_REBOOT();
-    $opts= $opts | Win32API::File::MOVEFILE_REPLACE_EXISTING()
-        unless ref $target;
-
-    _chmod( 0666, $file );
-    _chmod( 0666, $target ) unless ref $target;
-
-    if (Win32API::File::MoveFileEx( $file, $target, $opts )) {
-        $MUST_REBOOT ||= ref $target ? 0 : 1;
-        return 1;
-    } else {
-        my @msg=(
-            "MoveFileEx $descr at reboot failed: $^E",
-            "You may try to perform the operation by hand yourself. ",
-            "(You may need to close other perl processes first).",
-        );
-        if ( $moan ) { _warnonce(@msg) } else { _choke(@msg) }
-    }
-    return 0;
 }
 
 
