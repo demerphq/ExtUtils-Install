@@ -433,7 +433,7 @@ sub _can_write_dir {
     my $path='';
     my @make;
     while (@dirs) {
-        if ($Is_VMS) {
+        if (Is_VMS) {
             $dir = File::Spec->catdir($vol,@dirs);
         }
         else {
