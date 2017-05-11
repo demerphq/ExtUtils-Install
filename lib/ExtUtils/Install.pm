@@ -1158,11 +1158,12 @@ sub run_filter {
 
 =item B<pm_to_blib>
 
+    pm_to_blib(\%from_to);
     pm_to_blib(\%from_to, $autosplit_dir);
     pm_to_blib(\%from_to, $autosplit_dir, $filter_cmd);
 
 Copies each key of %from_to to its corresponding value efficiently.
-Filenames with the extension .pm are autosplit into the $autosplit_dir.
+If an $autosplit_dir is provided, all .pm files will be autosplit into it.
 Any destination directories are created.
 
 $filter_cmd is an optional shell command to run each .pm file through
@@ -1180,7 +1181,7 @@ environment variable will silence this output.
 sub pm_to_blib {
     my($fromto,$autodir,$pm_filter) = @_;
 
-    _mkpath($autodir,0,0755);
+    _mkpath($autodir,0,0755) if defined $autodir;
     while(my($from, $to) = each %$fromto) {
         if( -f $to && -s $from == -s $to && -M $to < -M $from ) {
             print "Skip $to (unchanged)\n" unless $INSTALL_QUIET;
@@ -1216,7 +1217,7 @@ sub pm_to_blib {
         utime($atime,$mtime+$Is_VMS,$to);
         _chmod(0444 | ( $mode & 0111 ? 0111 : 0 ),$to);
         next unless $from =~ /\.pm$/;
-        _autosplit($to,$autodir);
+        _autosplit($to,$autodir) if defined $autodir;
     }
 }
 
