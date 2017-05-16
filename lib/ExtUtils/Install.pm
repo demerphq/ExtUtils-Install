@@ -102,6 +102,10 @@ my $Inc_uninstall_warn_handler;
 
 my $INSTALL_ROOT = $ENV{PERL_INSTALL_ROOT};
 my $INSTALL_QUIET = $ENV{PERL_INSTALL_QUIET};
+$INSTALL_QUIET = 1
+  if (!exists $ENV{PERL_INSTALL_QUIET} and
+      defined $ENV{MAKEFLAGS} and
+      $ENV{MAKEFLAGS} =~ /\b(s|silent|quiet)\b/);
 
 my $Curdir = File::Spec->curdir;
 
