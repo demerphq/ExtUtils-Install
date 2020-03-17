@@ -309,7 +309,7 @@ sub version {
     return($self->{$module}{version});
 }
 
-sub debug_dump {
+sub _debug_dump {
     my ($self, $module) = @_;
     $self= $self->new(default=>1) if !ref $self;
     local $self->{":private:"}{Config};
