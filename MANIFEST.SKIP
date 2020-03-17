@@ -37,3 +37,4 @@ make_from_core.sh
 # Avoid continuous integration configuration files
 \.travis.yml
 \.appveyor.yml
+\.github
