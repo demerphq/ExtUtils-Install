@@ -92,11 +92,11 @@ END { ok(chdir $startdir, "Return to where we started"); }
     my $fakepath = File::Spec->catdir('auto', $fakedir);
     ok( mkpath($fakepath), "Able to create directory $fakepath for testing" );
 
-    ok(open(PACKLIST, ">$fakepath/.packlist"));
+    ok(open(PACKLIST, '>', File::Spec->catfile($fakepath, '.packlist')));
     print PACKLIST 'list';
     close PACKLIST;
 
-    ok(open(FAKEMOD, ">$fakepath/FakeMod.pm"));
+    ok(open(FAKEMOD, '>', File::Spec->catfile($fakepath, 'FakeMod.pm')));
 
     print FAKEMOD <<'FAKE';
 package FakeMod;
