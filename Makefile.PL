@@ -65,6 +65,7 @@ WriteMakefile1(
         'Test::More' => '0.47', # Tested with perl 5.6.2
     },
 
+    MIN_PERL_VERSION => '5.006',
     INSTALLDIRS     => ( $] < 5.012 ? 'perl' : 'site' ),
 
     #NO_META => 1,

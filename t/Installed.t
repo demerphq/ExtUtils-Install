@@ -1,4 +1,5 @@
 #!/usr/bin/perl -w
+use strict;
 
 # Test ExtUtils::Installed
 
@@ -9,7 +10,6 @@ BEGIN {
 
 my $Is_VMS = $^O eq 'VMS';
 
-use strict;
 
 use Config;
 use Cwd;
@@ -102,8 +102,7 @@ END { ok(chdir $startdir, "Return to where we started"); }
 
     print FAKEMOD <<'FAKE';
 package FakeMod;
-use vars qw( $VERSION );
-$VERSION = '1.1.1';
+our $VERSION = '1.1.1';
 1;
 FAKE
 
