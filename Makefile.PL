@@ -62,8 +62,7 @@ WriteMakefile1(
         ($Recommend_Win32API_File ? ('Win32API::File' => 0) : ()),
 
         'ExtUtils::MakeMaker' => 0,
-
-#       'Test::More' => 0, # This is bundled, but not in @INC for prereqs
+        'Test::More' => '0.47', # Tested with perl 5.6.2
     },
 
     INSTALLDIRS     => ( $] < 5.012 ? 'perl' : 'site' ),
