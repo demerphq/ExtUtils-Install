@@ -1159,6 +1159,7 @@ environment variable will silence this output.
 sub pm_to_blib {
     my($fromto,$autodir,$pm_filter) = @_;
 
+    my %dirs;
     _mkpath($autodir,0,0755) if defined $autodir;
     while(my($from, $to) = each %$fromto) {
         if( -f $to && -s $from == -s $to && -M $to < -M $from ) {
@@ -1182,7 +1183,10 @@ sub pm_to_blib {
             # we wont try hard here. its too likely to mess things up.
             forceunlink($to);
         } else {
-            _mkpath(dirname($to),0,0755);
+            my $dirname = dirname($to);
+            if (!$dirs{$dirname}++) {
+                _mkpath($dirname,0,0755);
+            }
         }
         if ($need_filtering) {
             run_filter($pm_filter, $from, $to);
