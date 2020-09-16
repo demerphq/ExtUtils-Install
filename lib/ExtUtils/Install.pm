@@ -465,10 +465,16 @@ sub _mkpath {
         printf "mkpath(%s,%d,%#o)\n", $dir, $show, $mode;
     }
     if (!$dry_run) {
-        if ( ! eval { File::Path::mkpath($dir,$show,$mode); 1 } ) {
-            _choke("Can't create '$dir'","$@");
+        my @created;
+        eval {
+            @created = File::Path::mkpath($dir,$show,$mode);
+            1;
+        } or _choke("Can't create '$dir'","$@");
+        # if we created any directories, we were able to write and don't need
+        # extra checks
+        if (@created) {
+            return;
         }
-
     }
     my ($can,$root,@make)=_can_write_dir($dir);
     if (!$can) {
