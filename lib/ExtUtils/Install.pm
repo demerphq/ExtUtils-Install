@@ -67,23 +67,19 @@ has occurred.
 If this value is defined but false then such an operation has
 ocurred, but should not impact later operations.
 
-=over
-
 =begin _private
 
-=item _chmod($$;$)
+=head2 _chmod($$;$)
 
 Wrapper to chmod() for debugging and error trapping.
 
-=item _warnonce(@)
+=head2 _warnonce(@)
 
 Warns about something only once.
 
-=item _choke(@)
+=head2 _choke(@)
 
 Dies with a special message.
-
-=back
 
 =end _private
 
@@ -157,9 +153,7 @@ sub _chmod($$;$) {
 
 =begin _private
 
-=over
-
-=item _move_file_at_boot( $file, $target, $moan  )
+=head2 _move_file_at_boot( $file, $target, $moan  )
 
 OS-Specific, Win32/Cygwin
 
@@ -231,8 +225,7 @@ If $moan is true then returns 0 on error and warns instead of dies.
 
 =begin _private
 
-
-=item _unlink_or_rename( $file, $tryhard, $installing )
+=head2 _unlink_or_rename( $file, $tryhard, $installing )
 
 OS-Specific, Win32/Cygwin
 
@@ -262,8 +255,6 @@ On failure throws a fatal error.
 =end _private
 
 =cut
-
-
 
 sub _unlink_or_rename { #XXX OS-SPECIFIC
     my ( $file, $tryhard, $installing )= @_;
@@ -310,24 +301,15 @@ sub _unlink_or_rename { #XXX OS-SPECIFIC
 
 }
 
-
-=pod
-
-=back
-
-=head2 Functions
+=head1 Functions
 
 =begin _private
 
-=over
-
-=item _get_install_skip
+=head2 _get_install_skip
 
 Handles loading the INSTALL.SKIP file. Returns an array of patterns to use.
 
 =cut
-
-
 
 sub _get_install_skip {
     my ( $skip, $verbose )= @_;
@@ -378,9 +360,7 @@ sub _get_install_skip {
     return $skip
 }
 
-=pod
-
-=item _have_write_access
+=head2 _have_write_access
 
 Abstract a -w check that tries to use POSIX::access() if possible.
 
@@ -402,9 +382,7 @@ Abstract a -w check that tries to use POSIX::access() if possible.
     }
 }
 
-=pod
-
-=item _can_write_dir(C<$dir>)
+=head2 _can_write_dir(C<$dir>)
 
 Checks whether a given directory is writable, taking account
 the possibility that the directory might not exist and would have to
@@ -422,7 +400,6 @@ to make the requested directory. It may not actually be correct on
 relative paths with C<..> in them. But for our purposes it should work ok
 
 =cut
-
 
 sub _can_write_dir {
     my $dir=shift;
@@ -461,9 +438,7 @@ sub _can_write_dir {
     return 0;
 }
 
-=pod
-
-=item _mkpath($dir,$show,$mode,$verbose,$dry_run)
+=head2 _mkpath($dir,$show,$mode,$verbose,$dry_run)
 
 Wrapper around File::Path::mkpath() to handle errors.
 
@@ -509,9 +484,7 @@ sub _mkpath {
 
 }
 
-=pod
-
-=item _copy($from,$to,$verbose,$dry_run)
+=head2 _copy($from,$to,$verbose,$dry_run)
 
 Wrapper around File::Copy::copy to handle errors.
 
@@ -522,7 +495,6 @@ If $dry_run is true then the copy will not actually occur.
 Dies if the copy fails.
 
 =cut
-
 
 sub _copy {
     my ( $from, $to, $verbose, $dry_run)=@_;
@@ -537,7 +509,7 @@ sub _copy {
 
 =pod
 
-=item _chdir($from)
+=head2 _chdir($from)
 
 Wrapper around chdir to catch errors.
 
@@ -558,15 +530,9 @@ sub _chdir {
     return $ret;
 }
 
-=pod
-
-=back
-
 =end _private
 
-=over
-
-=item B<install>
+=head2 install
 
     # deprecated forms
     install(\%from_to);
@@ -864,7 +830,7 @@ sub install { #XXX OS-SPECIFIC
 
 =begin _private
 
-=item _do_cleanup
+=head2 _do_cleanup
 
 Standardize finish event for after another instruction has occurred.
 Handles converting $MUST_REBOOT to a die for instance.
@@ -887,12 +853,12 @@ sub _do_cleanup {
 
 =begin _undocumented
 
-=item install_rooted_file( $file )
+=head2 install_rooted_file( $file )
 
 Returns $file, or catfile($INSTALL_ROOT,$file) if $INSTALL_ROOT
 is defined.
 
-=item install_rooted_dir( $dir )
+=head2 install_rooted_dir( $dir )
 
 Returns $dir, or catdir($INSTALL_ROOT,$dir) if $INSTALL_ROOT
 is defined.
@@ -900,7 +866,6 @@ is defined.
 =end _undocumented
 
 =cut
-
 
 sub install_rooted_file {
     if (defined $INSTALL_ROOT) {
@@ -921,7 +886,7 @@ sub install_rooted_dir {
 
 =begin _undocumented
 
-=item forceunlink( $file, $tryhard )
+=head2 forceunlink( $file, $tryhard )
 
 Tries to delete a file. If $tryhard is true then we will use whatever
 devious tricks we can to delete the file. Currently this only applies to
@@ -932,7 +897,6 @@ reboot. A wrapper for _unlink_or_rename().
 
 =cut
 
-
 sub forceunlink {
     my ( $file, $tryhard )= @_; #XXX OS-SPECIFIC
     _unlink_or_rename( $file, $tryhard, not("installing") );
@@ -940,7 +904,7 @@ sub forceunlink {
 
 =begin _undocumented
 
-=item directory_not_empty( $dir )
+=head2 directory_not_empty( $dir )
 
 Returns 1 if there is an .exists file somewhere in a directory tree.
 Returns 0 if there is not.
@@ -963,9 +927,9 @@ sub directory_not_empty ($) {
   return $files;
 }
 
-=pod
+=head2 install_default
 
-=item B<install_default> I<DISCOURAGED>
+I<DISCOURAGED>
 
     install_default();
     install_default($fullext);
@@ -1019,7 +983,7 @@ sub install_default {
 }
 
 
-=item B<uninstall>
+=head2 uninstall
 
     uninstall($packlist_file);
     uninstall($packlist_file, $verbose, $dont_execute);
@@ -1057,7 +1021,7 @@ sub uninstall {
 
 =begin _undocumented
 
-=item inc_uninstall($filepath,$libdir,$verbose,$dry_run,$ignore,$results)
+=head2 inc_uninstall($filepath,$libdir,$verbose,$dry_run,$ignore,$results)
 
 Remove shadowed files. If $ignore is true then it is assumed to hold
 a filename to ignore. This is used to prevent spurious warnings from
@@ -1150,7 +1114,7 @@ sub inc_uninstall {
 
 =begin _undocumented
 
-=item run_filter($cmd,$src,$dest)
+=head2 run_filter($cmd,$src,$dest)
 
 Filter $src using $cmd into $dest.
 
@@ -1172,9 +1136,7 @@ sub run_filter {
     close CMD or die "Filter command '$cmd' failed for $src";
 }
 
-=pod
-
-=item B<pm_to_blib>
+=head2 pm_to_blib
 
     pm_to_blib(\%from_to);
     pm_to_blib(\%from_to, $autosplit_dir);
@@ -1239,10 +1201,9 @@ sub pm_to_blib {
     }
 }
 
-
 =begin _private
 
-=item _autosplit
+=head2 _autosplit
 
 From 1.0307 back, AutoSplit will sometimes leave an open filehandle to
 the file being split.  This causes problems on systems with mandatory
@@ -1293,7 +1254,7 @@ sub DESTROY {
 
 =begin _private
 
-=item _invokant
+=head2 _invokant
 
 Does a heuristic on the stack to see who called us for more intelligent
 error messages. Currently assumes we will be called only by Module::Build
@@ -1319,10 +1280,6 @@ sub _invokant {
     }
     return $builder;
 }
-
-=pod
-
-=back
 
 =head1 ENVIRONMENT
 
