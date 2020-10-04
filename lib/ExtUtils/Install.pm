@@ -65,7 +65,7 @@ anything depending on this module cannot proceed until a reboot
 has occurred.
 
 If this value is defined but false then such an operation has
-ocurred, but should not impact later operations.
+occurred, but should not impact later operations.
 
 =begin _private
 
