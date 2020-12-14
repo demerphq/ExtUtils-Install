@@ -750,7 +750,8 @@ sub install { #XXX OS-SPECIFIC
             }
             # we have to do this for back compat with old File::Finds
             # and because the target is relative
-            my $save_cwd = _chdir($cwd);
+            my $save_cwd = File::Spec->catfile($cwd, $sourcedir);
+            _chdir($cwd);
             my $diff = $always_copy || _compare($sourcefile, $targetfile);
             $check_dirs{$targetdir}++
                 unless -w $targetfile;
